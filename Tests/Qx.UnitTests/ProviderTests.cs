@@ -72,9 +72,13 @@ namespace Qx.UnitTests
             var client = new QxClientBase(new QxAsyncQueryProviderBase());
             var query = client.GetEnumerable<int, int>("Range")(10);
 
-            var q2 = query.Join(query, x=> x, y => y, (x, y) => x);
+            var q2 = query.Join(query, x=> x, y => y, (x, y) => x + y);
 
-            var result = new KnownAsyncQueryableRewriter(factories).Visit(query.Expression);
+            var result = new KnownAsyncQueryableRewriter(factories).Visit(q2.Expression);
+
+            var compileme = Expression.Lambda<Func<IAsyncQueryable<int>>>(result);
+            var compiled = compileme.Compile();
+            compiled().ForEachAsync(x => Debug.WriteLine($"Got a {x}")).GetAwaiter().GetResult();
 
             Assert.Equal(ExpressionType.Invoke, result.NodeType);
             Assert.Equal(range, ((InvocationExpression)result).Expression);
@@ -220,7 +224,7 @@ namespace Qx.UnitTests
                 node.Type.IsGenericType && node.Type.GetGenericTypeDefinition() == typeof(IAsyncQueryable<>))
             {
 
-                if (_queryableFactories.TryGetValue(node.Name, out var factory)) return (Expression)Expression.Invoke(factory); // How do get the parameters here? or otherwise, how invoke?
+                if (_queryableFactories.TryGetValue(node.Name, out var factory)) return factory; // How do get the parameters here? or otherwise, how invoke?
                 else throw new InvalidOperationException($"No known queryable named '{node.Name}'");
             }
 
@@ -264,7 +268,7 @@ namespace Qx.UnitTests
     public class QxAsyncQueryProviderBase : IQxAsyncQueryProvider
     {
         public Func<TArg, IAsyncQueryable<TElement>> CreateQuery<TArg, TElement>(Expression<Func<TArg, IAsyncQueryable<TElement>>> expression) =>
-            arg => CreateQuery<TElement>(Expression.Invoke(expression, Expression.Constant(arg, typeof(TArg))));
+            arg => new QxAsyncQueryable<TElement>(this, Expression.Invoke(expression, Expression.Constant(arg, typeof(TArg))));
 
         public IAsyncQueryable<TElement> CreateQuery<TElement>(Expression expression) =>
             new QxAsyncQueryable<TElement>(this, expression);
@@ -308,10 +312,8 @@ namespace Qx.UnitTests
 
         public IAsyncQueryable<TElement> GetEnumerable<TElement>(string name)
         {
-            var expression = Expression.Invoke(
-                // We don't express this as a Func<IAsyncQueryable<TElement>> because we want to use it with
-                // IAsyncQueryable operators which expect a IAsyncQueryable<T>, not a Func<...>
-                Expression.Parameter(typeof(IAsyncQueryable<TElement>), name));
+            var expression = Expression.Lambda<Func<IAsyncQueryable<TElement>>>(Expression.Invoke(
+                Expression.Parameter(typeof(IAsyncQueryable<TElement>), name)));
             return _queryProvider.CreateQuery<TElement>(expression);
         }
 
