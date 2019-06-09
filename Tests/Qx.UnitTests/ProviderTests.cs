@@ -31,7 +31,8 @@ namespace Qx.UnitTests
         {
             Expression<Func<IAsyncQueryable<int>>> range = () => AsyncEnumerable.Range(0, 50).AsAsyncQueryable();
             var factories = new Dictionary<string, Expression> { { "Range", range } };
-            var query = new TestKnownAsyncQueryable<int>("Range");
+            var client = new QxClientBase(new QxAsyncQueryProviderBase());
+            var query = client.GetEnumerable<int>("Range");
 
             var result = new KnownAsyncQueryableRewriter(factories).Visit(query.Expression);
 
@@ -45,8 +46,9 @@ namespace Qx.UnitTests
             Expression<Func<IAsyncQueryable<int>>> range1 = () => AsyncEnumerable.Range(0, 50).AsAsyncQueryable();
             Expression<Func<IAsyncQueryable<int>>> range2 = () => AsyncEnumerable.Range(50, 50).AsAsyncQueryable();
             var factories = new Dictionary<string, Expression> { { "Range1", range1 }, { "Range2", range2 } };
-            var source1 = new TestKnownAsyncQueryable<int>("Range1");
-            var source2 = new TestKnownAsyncQueryable<int>("Range2");
+            var client = new QxClientBase(new QxAsyncQueryProviderBase());
+            var source1 = client.GetEnumerable<int>("Range1");
+            var source2 = client.GetEnumerable<int>("Range2");
             var query = source1.Join(source2, x => x, y => y, (x, y) => x + y);
 
             var result = new KnownAsyncQueryableRewriter(factories).Visit(query.Expression);
@@ -72,16 +74,26 @@ namespace Qx.UnitTests
             var client = new QxClientBase(new QxAsyncQueryProviderBase());
             var query = client.GetEnumerable<int, int>("Range")(10);
 
-            var q2 = query.Join(query, x=> x, y => y, (x, y) => x + y);
 
-            var result = new KnownAsyncQueryableRewriter(factories).Visit(q2.Expression);
 
-            var compileme = Expression.Lambda<Func<IAsyncQueryable<int>>>(result);
-            var compiled = compileme.Compile();
-            compiled().ForEachAsync(x => Debug.WriteLine($"Got a {x}")).GetAwaiter().GetResult();
+            var result = new KnownAsyncQueryableRewriter(factories).Visit(query.Expression);
 
             Assert.Equal(ExpressionType.Invoke, result.NodeType);
-            Assert.Equal(range, ((InvocationExpression)result).Expression);
+            Assert.Equal(range, ((InvocationExpression)(((LambdaExpression)(((InvocationExpression)result).Expression)).Body)).Expression);
+        }
+
+        [Fact]
+        public async Task Should_evaluate()
+        {
+            Expression<Func<int, IAsyncQueryable<int>>> range = (count) => AsyncEnumerable.Range(0, count).AsAsyncQueryable();
+            var factories = new Dictionary<string, Expression> { { "Range", range } };
+            var client = new QxClientBase(new QxAsyncQueryProviderBase());
+            var source = client.GetEnumerable<int, int>("Range")(10);
+            var query = source.Join(source, x => x, y => y, (x, y) => x + y);
+
+            var result = await Expression.Lambda<Func<IAsyncQueryable<int>>>(new KnownAsyncQueryableRewriter(factories).Visit(query.Expression)).Compile()().ToArrayAsync();
+
+            Assert.Equal(new[] { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18 }, result);
         }
 
     }
@@ -217,18 +229,13 @@ namespace Qx.UnitTests
             // TODO: Check if parameter is unbound
             // TODO: Check if types in parameter match the types in our factory
 
-            // NEXT: Of course when this is a Func<> we actually need to be checking a little higher in the tree?
-            // wait wat no we don't, it's still a parameter expression
-
-            if (TryGetDelegateType(node.Type, out var _, out var returnType) && returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(IAsyncQueryable<>) ||
-                node.Type.IsGenericType && node.Type.GetGenericTypeDefinition() == typeof(IAsyncQueryable<>))
+            if (TryGetDelegateType(node.Type, out var _, out var type) && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IAsyncQueryable<>))
             {
-
-                if (_queryableFactories.TryGetValue(node.Name, out var factory)) return factory; // How do get the parameters here? or otherwise, how invoke?
+                if (_queryableFactories.TryGetValue(node.Name, out var factory)) return factory;
                 else throw new InvalidOperationException($"No known queryable named '{node.Name}'");
             }
 
-            return node;
+            else return node;
         }
 
         private static bool TryGetDelegateType(Type type, out Type[] parameterTypes, out Type returnType)
@@ -267,8 +274,11 @@ namespace Qx.UnitTests
 
     public class QxAsyncQueryProviderBase : IQxAsyncQueryProvider
     {
+        // !!! This layer...
+        // * Might be used by things other than the client (e.g. defining operators)
+        // * Only accepts expressions which result in type IAsyncQueryable (because it's called from the operators with that)
         public Func<TArg, IAsyncQueryable<TElement>> CreateQuery<TArg, TElement>(Expression<Func<TArg, IAsyncQueryable<TElement>>> expression) =>
-            arg => new QxAsyncQueryable<TElement>(this, Expression.Invoke(expression, Expression.Constant(arg, typeof(TArg))));
+            arg => CreateQuery<TElement>(Expression.Invoke(expression, Expression.Constant(arg, typeof(TArg))));
 
         public IAsyncQueryable<TElement> CreateQuery<TElement>(Expression expression) =>
             new QxAsyncQueryable<TElement>(this, expression);
@@ -312,8 +322,8 @@ namespace Qx.UnitTests
 
         public IAsyncQueryable<TElement> GetEnumerable<TElement>(string name)
         {
-            var expression = Expression.Lambda<Func<IAsyncQueryable<TElement>>>(Expression.Invoke(
-                Expression.Parameter(typeof(IAsyncQueryable<TElement>), name)));
+            var expression = Expression.Invoke(
+                Expression.Parameter(typeof(Func<IAsyncQueryable<TElement>>), name));
             return _queryProvider.CreateQuery<TElement>(expression);
         }
 
