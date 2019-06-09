@@ -256,12 +256,7 @@ namespace Qx.UnitTests
     public interface IQxExpressible
     {
         public Expression Expression { get; }
-        public IQxAsyncQueryProvider Provider { get; }
-    }
-
-    public interface IQxAsyncQueryProvider : IAsyncQueryProvider
-    {
-        Func<TArg, IAsyncQueryable<TResult>> CreateQuery<TArg, TResult>(Expression<Func<TArg, IAsyncQueryable<TResult>>> expression);
+        public IAsyncQueryProvider Provider { get; }
     }
 
     //public interface IQxAsyncQueryable<T> : IAsyncQueryable<T>, IQxExpressible { }
@@ -272,14 +267,8 @@ namespace Qx.UnitTests
         Func<TArg, IAsyncQueryable<TElement>> GetEnumerable<TArg, TElement>(string name);
     }
 
-    public class QxAsyncQueryProviderBase : IQxAsyncQueryProvider
+    public class QxAsyncQueryProviderBase : IAsyncQueryProvider
     {
-        // !!! This layer...
-        // * Might be used by things other than the client (e.g. defining operators)
-        // * Only accepts expressions which result in type IAsyncQueryable (because it's called from the operators with that)
-        public Func<TArg, IAsyncQueryable<TElement>> CreateQuery<TArg, TElement>(Expression<Func<TArg, IAsyncQueryable<TElement>>> expression) =>
-            arg => CreateQuery<TElement>(Expression.Invoke(expression, Expression.Constant(arg, typeof(TArg))));
-
         public IAsyncQueryable<TElement> CreateQuery<TElement>(Expression expression) =>
             new QxAsyncQueryable<TElement>(this, expression);
 
@@ -330,9 +319,10 @@ namespace Qx.UnitTests
         public Func<TArg, IAsyncQueryable<TElement>> GetEnumerable<TArg, TElement>(string name)
         {
             var arg1 = Expression.Parameter(typeof(TArg));
-            var expression = Expression.Lambda<Func<TArg, IAsyncQueryable<TElement>>>(Expression.Invoke(
-                Expression.Parameter(typeof(Func<TArg, IAsyncQueryable<TElement>>), name), arg1), arg1);
-            return _queryProvider.CreateQuery(expression);
+            return arg => _queryProvider.CreateQuery<TElement>(Expression.Invoke(
+                Expression.Lambda<Func<TArg, IAsyncQueryable<TElement>>>(
+                    Expression.Invoke(Expression.Parameter(typeof(Func<TArg, IAsyncQueryable<TElement>>), name), arg1), arg1),
+                    Expression.Constant(arg, typeof(TArg))));
         }
     }
 
