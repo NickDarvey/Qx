@@ -309,19 +309,16 @@ namespace Qx.UnitTests
 
         public QxClientBase(QxAsyncQueryProviderBase queryProvider) => _queryProvider = queryProvider;
 
-        public IAsyncQueryable<TElement> GetEnumerable<TElement>(string name)
-        {
-            var invocation = Expression.Invoke(
-                Expression.Parameter(typeof(Func<IAsyncQueryable<TElement>>), name));
-            return _queryProvider.CreateQuery<TElement>(invocation);
-        }
+        public IAsyncQueryable<TElement> GetEnumerable<TElement>(string name) =>
+            GetEnumerable<TElement>(Expression.Parameter(typeof(Func<IAsyncQueryable<TElement>>), name));
 
-        public Func<TArg, IAsyncQueryable<TElement>> GetEnumerable<TArg, TElement>(string name)
-        {
-            return arg => _queryProvider.CreateQuery<TElement>(Expression.Invoke(
+        public Func<TArg, IAsyncQueryable<TElement>> GetEnumerable<TArg, TElement>(string name) =>
+            arg => GetEnumerable<TElement>(
                 Expression.Parameter(typeof(Func<TArg, IAsyncQueryable<TElement>>), name),
-                Expression.Constant(arg, typeof(TArg))));
-        }
+                Expression.Constant(arg, typeof(TArg)));
+
+        private IAsyncQueryable<TElement> GetEnumerable<TElement>(ParameterExpression parameter, params Expression[] arguments) =>
+            _queryProvider.CreateQuery<TElement>(Expression.Invoke(parameter, arguments));
     }
 
 }
