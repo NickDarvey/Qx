@@ -79,7 +79,7 @@ namespace Qx.UnitTests
             var result = new KnownAsyncQueryableRewriter(factories).Visit(query.Expression);
 
             Assert.Equal(ExpressionType.Invoke, result.NodeType);
-            Assert.Equal(range, ((InvocationExpression)(((LambdaExpression)(((InvocationExpression)result).Expression)).Body)).Expression);
+            Assert.Equal(range, ((InvocationExpression)result).Expression);
         }
 
         [Fact]
@@ -311,18 +311,16 @@ namespace Qx.UnitTests
 
         public IAsyncQueryable<TElement> GetEnumerable<TElement>(string name)
         {
-            var expression = Expression.Invoke(
+            var invocation = Expression.Invoke(
                 Expression.Parameter(typeof(Func<IAsyncQueryable<TElement>>), name));
-            return _queryProvider.CreateQuery<TElement>(expression);
+            return _queryProvider.CreateQuery<TElement>(invocation);
         }
 
         public Func<TArg, IAsyncQueryable<TElement>> GetEnumerable<TArg, TElement>(string name)
         {
-            var arg1 = Expression.Parameter(typeof(TArg));
             return arg => _queryProvider.CreateQuery<TElement>(Expression.Invoke(
-                Expression.Lambda<Func<TArg, IAsyncQueryable<TElement>>>(
-                    Expression.Invoke(Expression.Parameter(typeof(Func<TArg, IAsyncQueryable<TElement>>), name), arg1), arg1),
-                    Expression.Constant(arg, typeof(TArg))));
+                Expression.Parameter(typeof(Func<TArg, IAsyncQueryable<TElement>>), name),
+                Expression.Constant(arg, typeof(TArg))));
         }
     }
 
