@@ -26,7 +26,7 @@ namespace QxServer
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseSignalR(routes => routes.MapHub<DispatcherHub>("/qx"));
+            app.UseSignalR(routes => routes.MapHub<MyRandomHub>("/qx"));
 
             app.Run(async (context) =>
             {
