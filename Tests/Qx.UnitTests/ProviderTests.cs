@@ -13,17 +13,17 @@ namespace Qx.UnitTests
 {
     public class RewriterTests
     {
-        private class TestKnownAsyncQueryable<T> : IAsyncQueryable<T>, IAsyncQueryProvider
+        private class TestQueryServiceProvider : IAsyncQueryServiceProvider
         {
-            public TestKnownAsyncQueryable(string name) => Expression = Expression.Parameter(typeof(IAsyncQueryable<T>), name);
-            public TestKnownAsyncQueryable(Expression expression) => Expression = expression;
+            public IAsyncEnumerator<T> GetAsyncEnumerator<T>(Expression expression, CancellationToken token)
+            {
+                throw new NotImplementedException();
+            }
 
-            public Type ElementType => typeof(T);
-            public Expression Expression { get; }
-            public IAsyncQueryProvider Provider => this;
-            public IAsyncQueryable<TElement> CreateQuery<TElement>(Expression expression) => new TestKnownAsyncQueryable<TElement>(expression);
-            public ValueTask<TResult> ExecuteAsync<TResult>(Expression expression, CancellationToken token) => throw new NotImplementedException();
-            public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => throw new NotImplementedException();
+            public ValueTask<T> GetAsyncResult<T>(Expression expression, CancellationToken token)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         [Fact]
@@ -31,7 +31,7 @@ namespace Qx.UnitTests
         {
             Expression<Func<IAsyncQueryable<int>>> range = () => AsyncEnumerable.Range(0, 50).AsAsyncQueryable();
             var factories = new Dictionary<string, Expression> { { "Range", range } };
-            var client = new QxClientBase(new QxAsyncQueryProviderBase());
+            var client = new QxClientBase(new TestQueryServiceProvider());
             var query = client.GetEnumerable<int>("Range");
 
             var result = new KnownAsyncQueryableRewriter(factories).Visit(query.Expression);
@@ -46,7 +46,7 @@ namespace Qx.UnitTests
             Expression<Func<IAsyncQueryable<int>>> range1 = () => AsyncEnumerable.Range(0, 50).AsAsyncQueryable();
             Expression<Func<IAsyncQueryable<int>>> range2 = () => AsyncEnumerable.Range(50, 50).AsAsyncQueryable();
             var factories = new Dictionary<string, Expression> { { "Range1", range1 }, { "Range2", range2 } };
-            var client = new QxClientBase(new QxAsyncQueryProviderBase());
+            var client = new QxClientBase(new TestQueryServiceProvider());
             var source1 = client.GetEnumerable<int>("Range1");
             var source2 = client.GetEnumerable<int>("Range2");
             var query = source1.Join(source2, x => x, y => y, (x, y) => x + y);
@@ -71,7 +71,7 @@ namespace Qx.UnitTests
         {
             Expression<Func<int, IAsyncQueryable<int>>> range = (count) => AsyncEnumerable.Range(0, count).AsAsyncQueryable();
             var factories = new Dictionary<string, Expression> { { "Range", range } };
-            var client = new QxClientBase(new QxAsyncQueryProviderBase());
+            var client = new QxClientBase(new TestQueryServiceProvider());
             var query = client.GetEnumerable<int, int>("Range")(10);
 
 
@@ -87,7 +87,7 @@ namespace Qx.UnitTests
         {
             Expression<Func<int, IAsyncQueryable<int>>> range = (count) => AsyncEnumerable.Range(0, count).AsAsyncQueryable();
             var factories = new Dictionary<string, Expression> { { "Range", range } };
-            var client = new QxClientBase(new QxAsyncQueryProviderBase());
+            var client = new QxClientBase(new TestQueryServiceProvider());
             var source = client.GetEnumerable<int, int>("Range")(10);
             var query = source.Join(source, x => x, y => y, (x, y) => x + y);
 
@@ -267,47 +267,53 @@ namespace Qx.UnitTests
         Func<TArg, IAsyncQueryable<TElement>> GetEnumerable<TArg, TElement>(string name);
     }
 
-    public class QxAsyncQueryProviderBase : IAsyncQueryProvider
+    //public class QxAsyncQueryProviderBase : IAsyncQueryProvider
+    //{
+    //    public IAsyncQueryable<TElement> CreateQuery<TElement>(Expression expression) =>
+    //        new QxAsyncQueryable<TElement>(this, expression);
+
+    //    public ValueTask<TResult> ExecuteAsync<TResult>(Expression expression, CancellationToken token)
+    //    {
+    //        throw new NotImplementedException();
+    //    }
+
+    //    internal IAsyncEnumerator<TElement> GetAsyncEnumerator<TElement>(IAsyncQueryable<TElement> enumerable, CancellationToken cancellationToken = default)
+    //    {
+    //        throw new NotImplementedException();
+    //    }
+    //}
+
+    public interface IAsyncQueryServiceProvider
     {
-        public IAsyncQueryable<TElement> CreateQuery<TElement>(Expression expression) =>
-            new QxAsyncQueryable<TElement>(this, expression);
-
-        public ValueTask<TResult> ExecuteAsync<TResult>(Expression expression, CancellationToken token)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal IAsyncEnumerator<TElement> GetAsyncEnumerator<TElement>(CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
+        ValueTask<T> GetAsyncResult<T>(Expression expression, CancellationToken token);
+        IAsyncEnumerator<T> GetAsyncEnumerator<T>(Expression expression, CancellationToken token);
     }
 
-    public class QxAsyncQueryable<T> : IAsyncQueryable<T>
+    public class QxAsyncQuery<T> : IAsyncQueryable<T>, IAsyncQueryProvider
     {
-        private readonly QxAsyncQueryProviderBase _provider;
+        private readonly IAsyncQueryServiceProvider _service;
         private readonly Expression _expression;
 
-        public QxAsyncQueryable(QxAsyncQueryProviderBase provider, Expression expression)
-        {
-            _provider = provider;
-            _expression = expression;
-        }
+        internal QxAsyncQuery(IAsyncQueryServiceProvider service, Expression expression) => (_service, _expression) = (service, expression);
 
-        public Type ElementType => typeof(T);
+        Type IAsyncQueryable.ElementType => typeof(T);
 
-        public Expression Expression => _expression;
+        Expression IAsyncQueryable.Expression => _expression;
 
-        public IAsyncQueryProvider Provider => _provider;
+        IAsyncQueryProvider IAsyncQueryable.Provider => this;
 
-        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => _provider.GetAsyncEnumerator<T>(cancellationToken);
+        IAsyncQueryable<TElement> IAsyncQueryProvider.CreateQuery<TElement>(Expression expression) => new QxAsyncQuery<TElement>(_service, expression);
+
+        ValueTask<TResult> IAsyncQueryProvider.ExecuteAsync<TResult>(Expression expression, CancellationToken token) => _service.GetAsyncResult<TResult>(expression, token);
+
+        IAsyncEnumerator<T> IAsyncEnumerable<T>.GetAsyncEnumerator(CancellationToken token) => _service.GetAsyncEnumerator<T>(_expression, token);
     }
 
     public class QxClientBase : IQxClient
     {
-        private readonly QxAsyncQueryProviderBase _queryProvider;
+        private readonly IAsyncQueryServiceProvider _service;
 
-        public QxClientBase(QxAsyncQueryProviderBase queryProvider) => _queryProvider = queryProvider;
+        public QxClientBase(IAsyncQueryServiceProvider service) => _service = service;
 
         public IAsyncQueryable<TElement> GetEnumerable<TElement>(string name) =>
             GetEnumerable<TElement>(Expression.Parameter(typeof(Func<IAsyncQueryable<TElement>>), name));
@@ -318,7 +324,31 @@ namespace Qx.UnitTests
                 Expression.Constant(arg, typeof(TArg)));
 
         private IAsyncQueryable<TElement> GetEnumerable<TElement>(ParameterExpression parameter, params Expression[] arguments) =>
-            _queryProvider.CreateQuery<TElement>(Expression.Invoke(parameter, arguments));
+            new QxAsyncQuery<TElement>(_service, Expression.Invoke(parameter, arguments));
+
+        // For future reference,
+        // something like this here would mean all of the 'standard' expression building bits would
+        // be encapsulated entirely within this QxClient class.
+        ///// <summary>
+        ///// Normalizes expressions before passing them to the actual service provider.
+        ///// </summary>
+        //private class NormalizingAsyncQueryServiceProvider : IAsyncQueryServiceProvider
+        //{
+        //    private readonly IAsyncQueryServiceProvider _base;
+
+        //    public NormalizingAsyncQueryServiceProvider(IAsyncQueryServiceProvider service) => _base = service;
+
+        //    public IAsyncEnumerator<T> GetAsyncEnumerator<T>(Expression expression, CancellationToken token)
+        //    {
+        //        var reduced = new SomeKindaReducer().Visit(expression);
+        //        return _base.GetAsyncEnumerator<T>(reduced, token);
+        //    }
+
+        //    public ValueTask<T> GetAsyncResult<T>(Expression expression, CancellationToken token)
+        //    {
+        //        throw new NotImplementedException();
+        //    }
+        //}
     }
 
 }

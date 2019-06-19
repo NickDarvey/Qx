@@ -9,10 +9,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson" Version="3.0.0-preview5-19227-01" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="3.0.0-preview6.19307.2" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson" Version="3.0.0-preview6.19307.2" />
     <PackageReference Include="Serialize.Linq" Version="1.8.1" />
-    <PackageReference Include="System.Interactive.Async" Version="4.0.0-preview.1.build.745" />
-    <PackageReference Include="System.Interactive.Async.Providers" Version="4.0.0-preview.1.build.745" />
+    <PackageReference Include="System.Interactive.Async" Version="4.0.0-preview.6.build.801" />
+    <PackageReference Include="System.Interactive.Async.Providers" Version="4.0.0-preview.6.build.801" />
   </ItemGroup>
 
 </Project>
