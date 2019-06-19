@@ -9,8 +9,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QxClient", "Samples\QxClient\QxClient.csproj", "{0C77BB7B-DF35-4079-AE8F-AB3D40EDB66A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.Interfaces", "Source\Qx.Interfaces\Qx.Interfaces.csproj", "{469CDC1E-4550-4610-8E5B-295862785815}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "System.Reactive.Async.Interfaces", "Libraries\reactive\AsyncRx.NET\System.Reactive.Async.Interfaces\System.Reactive.Async.Interfaces.csproj", "{88344AAB-5FEC-429F-968D-4E30A4067A26}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.Client", "Source\Qx.Client\Qx.Client.csproj", "{9062C34E-89D8-425C-8930-E7EA6D264C1E}"
@@ -19,9 +17,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QxServer", "Samples\QxServe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.UnitTests", "Tests\Qx.UnitTests\Qx.UnitTests.csproj", "{9588466E-AB5D-42FB-A78B-B36F9423ADE3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qx.Client.SignalR", "Source\Qx.Client.SignalR\Qx.Client.SignalR.csproj", "{049F5BDF-B922-4D71-BCEF-E509ED2F5123}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.Client.SignalR", "Source\Qx.Client.SignalR\Qx.Client.SignalR.csproj", "{049F5BDF-B922-4D71-BCEF-E509ED2F5123}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qx.Client.Core", "Source\Qx.Client.Core\Qx.Client.Core.csproj", "{496421C8-9CD1-467B-9C99-E3B073C0C394}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.Client.Core", "Source\Qx.Client.Core\Qx.Client.Core.csproj", "{496421C8-9CD1-467B-9C99-E3B073C0C394}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,10 +31,6 @@ Global
 		{0C77BB7B-DF35-4079-AE8F-AB3D40EDB66A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0C77BB7B-DF35-4079-AE8F-AB3D40EDB66A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0C77BB7B-DF35-4079-AE8F-AB3D40EDB66A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{469CDC1E-4550-4610-8E5B-295862785815}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{469CDC1E-4550-4610-8E5B-295862785815}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{469CDC1E-4550-4610-8E5B-295862785815}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{469CDC1E-4550-4610-8E5B-295862785815}.Release|Any CPU.Build.0 = Release|Any CPU
 		{88344AAB-5FEC-429F-968D-4E30A4067A26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{88344AAB-5FEC-429F-968D-4E30A4067A26}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{88344AAB-5FEC-429F-968D-4E30A4067A26}.Release|Any CPU.ActiveCfg = Release|Any CPU

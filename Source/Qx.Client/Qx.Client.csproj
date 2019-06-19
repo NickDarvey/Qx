@@ -6,7 +6,4 @@
   <ItemGroup>
     <PackageReference Include="System.Linq.Async.Queryable" Version="4.0.0-preview.1.build.745" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Qx.Interfaces\Qx.Interfaces.csproj" />
-  </ItemGroup>
 </Project>

@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Libraries\reactive\AsyncRx.NET\System.Reactive.Async.Interfaces\System.Reactive.Async.Interfaces.csproj" />
-  </ItemGroup>
-</Project>
