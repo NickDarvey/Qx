@@ -19,6 +19,12 @@ namespace Qx
                 Expression.Parameter(typeof(Func<TArg, IAsyncQueryable<TElement>>), name),
                 Expression.Constant(arg, typeof(TArg)));
 
+        public Func<TArg1, TArg2, IAsyncQueryable<TElement>> GetEnumerable<TArg1, TArg2, TElement>(string name) =>
+            (arg1, arg2) => GetEnumerable<TElement>(
+                Expression.Parameter(typeof(Func<TArg1, TArg2, IAsyncQueryable<TElement>>), name),
+                Expression.Constant(arg1, typeof(TArg1)),
+                Expression.Constant(arg2, typeof(TArg2)));
+
         private IAsyncQueryable<TElement> GetEnumerable<TElement>(ParameterExpression parameter, params Expression[] arguments) =>
             new QxAsyncQuery<TElement>(_service, Expression.Invoke(parameter, arguments));
 

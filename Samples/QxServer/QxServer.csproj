@@ -16,4 +16,8 @@
     <PackageReference Include="System.Interactive.Async.Providers" Version="4.0.0-preview.6.build.801" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Source\Qx.Server\Qx.csproj" />
+  </ItemGroup>
+
 </Project>

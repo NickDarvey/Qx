@@ -1,92 +1,63 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Qx;
 using Serialize.Linq.Nodes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Channels;
-using System.Threading.Tasks;
+using System.Reflection;
 
 namespace QxServer
 {
-    public class RandomHub : Hub
+    public class QueryableHub : Hub
     {
-        public async IAsyncEnumerable<int> Range(int start, int count)
+        [HubMethodName("qx")]
+        public IAsyncEnumerable<object> GetEnumerable(ExpressionNode expression)
         {
-            for (int i = start; i < start + count; i++)
-            {
-                yield return i;
-            }
+            // TODO: Checks for duplicates (overrides) and stuff?
+
+            var queryables = this.GetType().GetMethods()
+                .Where(m => m.ReturnType.IsGenericType && m.ReturnType.GetGenericTypeDefinition() == typeof(IAsyncQueryable<>))
+                .Select(m =>
+                {
+                    var args = m.GetParameters().Select(p => Expression.Parameter(p.ParameterType, p.Name)).ToArray(/* generate params once */);
+                    var call = Expression.Call(Expression.Constant(this), m, args);
+                    return (
+                     Name: m.GetCustomAttribute<HubMethodNameAttribute>()?.Name ?? m.Name,
+                     Expression: Expression.Lambda(call, args )
+                     //Expression: Expression.Lambda(Expression.Call(Expression.Constant(this), m, m.GetParameters().Select(p => Expression.Parameter(p.ParameterType, p.Name))))
+                     );
+                })
+                .ToDictionary(kv => kv.Name, kv => (Expression)kv.Expression);
+
+            var expr = expression.ToExpression();
+            var query = new AsyncQueryableRewriter(queryables).Visit(expr);
+            var sourceType = query.Type.GenericTypeArguments[0];
+            var resultType = typeof(object);
+            var elementParameter = Expression.Parameter(sourceType);
+            var selectBody = Expression.Lambda(Expression.Convert(elementParameter, resultType), elementParameter);
+            var selectMethod = Expression.Call(
+                method: new Func<IAsyncQueryable<object>, Expression<Func<object, object>>, IAsyncQueryable<object>>(AsyncQueryable.Select).GetMethodInfo().GetGenericMethodDefinition().MakeGenericMethod(sourceType, resultType),
+                arg0: query, arg1: selectBody);
+            var func = Expression.Lambda<Func<IAsyncQueryable<object>>>(selectMethod).Compile();
+
+            return func();
+
         }
     }
 
-    public class MyRandomHub : RandomHub
+
+
+
+
+
+
+
+
+
+    public class MyHub : QueryableHub
     {
-        public async IAsyncEnumerable<int> Count(int count)
-        {
-            for (int i = 0; i < count; i++)
-            {
-                yield return i;
-            }
-        }
-
-        [HubMethodName("Thing`1")]
-        public async IAsyncEnumerable<object> Thing(int arg1)
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                yield return i;
-            }
-        }
-
-        [HubMethodName("Thing`2")]
-
-        public async IAsyncEnumerable<object> Thing(int arg1, int arg2)
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                yield return i;
-            }
-        }
-
-        [HubMethodName("Thing`3")]
-
-        public async IAsyncEnumerable<object> Thing(int arg1, int arg2, int arg3)
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                yield return i;
-            }
-        }
+        public IAsyncQueryable<int> Range(int start, int count) => AsyncEnumerable.Range(start, count).AsAsyncQueryable();
     }
-
-    //public class DispatcherHub : Hub
-    //{
-    //    [HubMethodName("qx")]
-    //    public IAsyncEnumerable<int> GetEnumerable(ExpressionNode expression)
-    //    {
-    //        // Could turn it into a lambda expression which accepts a IAsyncEnum
-    //        var y = AsyncEnumerable.Range(0, 10).AsAsyncQueryable();
-    //        var x = expression.ToString();
-    //        var excpr = expression.ToExpression();
-    //        var outer = (MethodCallExpression)excpr;
-    //        // At this point I have an Expr.Parameter which I think I can just
-    //        // replace with a call to get my actual IAsyncEnum or turn into a lambda thingy
-
-    //        // I've also got a tree with a quoted thing, i don't lknow what that's about
-    //        Console.WriteLine("Got exprtree: " + expression);
-
-
-
-    //        var start = 0;
-    //        var count = 50;
-
-    //        using var hub = new RandomHub
-    //        {
-    //            Context = this.Context
-    //        };
-    //        return hub.Range(start, count);
-    //    }
-    //}
 
 }
