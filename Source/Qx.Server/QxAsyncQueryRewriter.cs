@@ -8,13 +8,13 @@ namespace Qx
     /// <summary>
     /// Rewrites a Qx query (an expression tree with unbound AsyncQueryable<> parameters) binding it to the provided factories.
     /// </summary>
-    public class AsyncQueryableRewriter : ExpressionVisitor
+    public class QxAsyncQueryRewriter : ExpressionVisitor
     {
-        private readonly IReadOnlyDictionary<string, Expression> _queryableFactories;
+        private readonly IReadOnlyDictionary<string, LambdaExpression> _queryables;
 
-        public AsyncQueryableRewriter(IReadOnlyDictionary<string, Expression> queryableFactories)
+        public QxAsyncQueryRewriter(IReadOnlyDictionary<string, LambdaExpression> queryables)
         {
-            _queryableFactories = queryableFactories;
+            _queryables = queryables;
         }
 
         protected override Expression VisitParameter(ParameterExpression node)
@@ -24,7 +24,7 @@ namespace Qx
 
             if (TryGetDelegateType(node.Type, out var type) && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IAsyncQueryable<>))
             {
-                if (_queryableFactories.TryGetValue(node.Name, out var factory)) return factory;
+                if (_queryables.TryGetValue(node.Name, out var factory)) return factory;
                 else throw new InvalidOperationException($"No known queryable named '{node.Name}'");
             }
 

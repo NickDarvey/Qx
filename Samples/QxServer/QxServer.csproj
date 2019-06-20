@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Source\Qx.Server\Qx.csproj" />
+    <ProjectReference Include="..\..\Source\Qx.SignalR\Qx.SignalR.csproj" />
   </ItemGroup>
 
 </Project>

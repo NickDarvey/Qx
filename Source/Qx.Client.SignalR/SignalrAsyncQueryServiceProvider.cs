@@ -8,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace Qx
 {
-    public class SignalrAsyncQueryServiceProvider : IAsyncQueryServiceProvider
+    public class SignalRAsyncQueryServiceProvider : IAsyncQueryServiceProvider
     {
         private readonly NodeFactory _factory = new NodeFactory(); // Creates ExpressionNodes, a serializable expression tree.
         private readonly HubConnection _connection;
 
-        public SignalrAsyncQueryServiceProvider(HubConnection connection)
+        public SignalRAsyncQueryServiceProvider(HubConnection connection)
         {
             _connection = connection;
         }

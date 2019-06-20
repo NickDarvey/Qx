@@ -21,7 +21,7 @@ namespace QxClient
 
 
 
-            var x = new QxAsyncQueryClient(new SignalrAsyncQueryServiceProvider(connection));
+            var x = new QxAsyncQueryClient(new SignalRAsyncQueryServiceProvider(connection));
 
             var range = x.GetEnumerable<int, int, int>("Range");
 
