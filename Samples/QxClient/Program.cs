@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Qx;
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace QxClient
@@ -29,13 +30,13 @@ namespace QxClient
             var r2 = range(10, 10);
 
             //var q = r1.Zip(r2);
-            var q = await r1.Zip(r2).Skip(1).FirstAsync();
+            var q = r1.Zip(r2).Skip(1);
 
             //var q = x.GetEnumerable<int, int, int>("Range")(0,20).Where(n => n % 2 == 0).Select(x => x * 2);
 
-            //await q.ForEachAsync(n => Console.WriteLine("Hello you: " + n));
+            await q.ForEachAsync(n => Console.WriteLine("Hello you: " + n));
 
-            Console.WriteLine("Hello you: " + q);
+            //Console.WriteLine("Hello you: " + q);
         }
 
         //static async Task Main(string[] args)

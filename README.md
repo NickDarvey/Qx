@@ -9,7 +9,10 @@
 * ~~First-pass binding where I just lookup what methods are on the Hub and call them,
   skipping authorization.~~
 * ~~Test IAsyncQueryable discovery?~~
+* Support cancellation of many results
+  * Why don't I get a cancellation token?
 * Handle mismatched arity
 * Handle authorization (and other SignalR-supported stuff?)
 * Add a nice ASP.NET COre style API (builder etc)
 * Cache the Hub resolution stuff
+* Support Task<IAsyncEnumerable<T>>

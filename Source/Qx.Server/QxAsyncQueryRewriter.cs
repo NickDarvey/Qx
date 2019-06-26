@@ -2,45 +2,66 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 
 namespace Qx
 {
     /// <summary>
     /// Rewrites a Qx query (an expression tree with unbound AsyncQueryable<> parameters) binding it to the provided factories.
     /// </summary>
+    /// 
+    // TODO: Move ExpressionVisitor into an encapsulated Impl class
     public class QxAsyncQueryRewriter : ExpressionVisitor
     {
         private readonly IReadOnlyDictionary<string, LambdaExpression> _queryables;
+        private readonly IEnumerable<ParameterExpression> _parameters;
 
-        public QxAsyncQueryRewriter(IReadOnlyDictionary<string, LambdaExpression> queryables)
+        private QxAsyncQueryRewriter(IReadOnlyDictionary<string, LambdaExpression> queryables, IEnumerable<ParameterExpression> parameters)
         {
             _queryables = queryables;
+            _parameters = parameters;
         }
 
-        protected override Expression VisitParameter(ParameterExpression node)
+        public static Expression<Func<TArg, TResult>> Rewrite<TArg, TResult>(Expression expression, IReadOnlyDictionary<string, LambdaExpression> queryables) =>
+            Rewrite<Func<TArg, TResult>>(expression, queryables, new[] { Expression.Parameter(typeof(TArg)) });
+
+        public static Expression<Func<TResult>> Rewrite<TResult>(Expression expression, IReadOnlyDictionary<string, LambdaExpression> queryables) =>
+            Rewrite<Func<TResult>>(expression, queryables, Enumerable.Empty<ParameterExpression>());
+
+        // TODO: etc
+ 
+        private static Expression<TDelegate> Rewrite<TDelegate>(Expression expression, IReadOnlyDictionary<string, LambdaExpression> queryables, IEnumerable<ParameterExpression> parameters) =>
+            Expression.Lambda<TDelegate>(new QxAsyncQueryRewriter(queryables, parameters).Visit(expression), parameters);
+
+        protected override Expression VisitInvocation(InvocationExpression node)
         {
-            // TODO: Check if parameter is unbound?
-            // TODO: Check if types in parameter match the types in our factory
-
-            if (TryGetDelegateType(node.Type, out var type) && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IAsyncQueryable<>))
+            // TODO: Ensure the parameter is unbound?
+            // TODO: Look into beta reduction to see if we can lose the LambdaExpr, reduce to underlying CallExpr
+            if (node.Type.IsGenericType
+                && node.Type.GetGenericTypeDefinition() == typeof(IAsyncQueryable<>)
+                && node.Expression is ParameterExpression unboundParameterExpression)
             {
-                if (_queryables.TryGetValue(node.Name, out var factory)) return factory;
-                else throw new InvalidOperationException($"No known queryable named '{node.Name}'");
-            }
+                if (_queryables.TryGetValue(unboundParameterExpression.Name, out var queryable))
+                {
+                    var hasArgumentsMatchingParameters = node.Arguments
+                        .Zip(queryable.Parameters, (arg, param) => arg.Type == param.Type)
+                        .All(x => x);
 
-            else return node;
-        }
+                    if (hasArgumentsMatchingParameters == false) throw new ArgumentException(/* TODO: Be helpful */);
 
-        private static bool TryGetDelegateType(Type type, out Type returnType)
-        {
-            if (type != null && typeof(Delegate).IsAssignableFrom(type))
-            {
-                var method = type.GetMethod("Invoke");
-                returnType = method.ReturnType;
-                return true;
+                    var expression = Visit(queryable);
+                    var syntheticArguments = queryable.Parameters // TODO: Error when our queryable wants more parameters than we have
+                        .Skip(node.Arguments.Count)
+                        .Zip(_parameters, (synthetic, supplied) => supplied);
+                    var arguments = node.Arguments
+                        .Concat(syntheticArguments)
+                        .Select(Visit);
+
+                    return Expression.Invoke(expression, arguments);
+                }
+                else throw new InvalidOperationException($"No known queryable named '{unboundParameterExpression.Name}'");
             }
-            returnType = null;
-            return false;
+            return base.VisitInvocation(node);
         }
     }
 }
