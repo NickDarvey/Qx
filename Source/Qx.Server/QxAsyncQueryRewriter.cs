@@ -22,6 +22,15 @@ namespace Qx
             _parameters = parameters;
         }
 
+        /// <summary>
+        /// Rewrites a Qx query (an expression tree with unbound <see cref="IAsyncQueryable{T}"/> parameters) binding it to the provided queryable factories
+        /// and creating an expression to which you can pass synthetic arguments to the factories.
+        /// </summary>
+        /// <typeparam name="TArg">A synthetic argument.</typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="expression"></param>
+        /// <param name="queryables"></param>
+        /// <returns></returns>
         public static Expression<Func<TArg, TResult>> Rewrite<TArg, TResult>(Expression expression, IReadOnlyDictionary<string, LambdaExpression> queryables) =>
             Rewrite<Func<TArg, TResult>>(expression, queryables, new[] { Expression.Parameter(typeof(TArg)) });
 
