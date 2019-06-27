@@ -5,11 +5,7 @@ VisualStudioVersion = 16.0.28803.352
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{C8EBB316-8263-4283-9261-477BD4F9858B}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{2C5BE668-5DE7-4ED0-82CA-5A23CCE20634}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QxClient", "Samples\QxClient\QxClient.csproj", "{0C77BB7B-DF35-4079-AE8F-AB3D40EDB66A}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "System.Reactive.Async.Interfaces", "Libraries\reactive\AsyncRx.NET\System.Reactive.Async.Interfaces\System.Reactive.Async.Interfaces.csproj", "{88344AAB-5FEC-429F-968D-4E30A4067A26}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.Client", "Source\Qx.Client\Qx.Client.csproj", "{9062C34E-89D8-425C-8930-E7EA6D264C1E}"
 EndProject
@@ -25,7 +21,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx", "Source\Qx.Server\Qx.c
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.SignalR", "Source\Qx.SignalR\Qx.SignalR.csproj", "{45FEA26A-0A43-44CE-95AD-60903F7438AE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Qx.SignalR.UnitTests", "Tests\Qx.SignalR.UnitTests\Qx.SignalR.UnitTests.csproj", "{3DFC2075-E9B4-4FA2-96AB-8A9EF4A2FA0E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.SignalR.UnitTests", "Tests\Qx.SignalR.UnitTests\Qx.SignalR.UnitTests.csproj", "{3DFC2075-E9B4-4FA2-96AB-8A9EF4A2FA0E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -37,10 +33,6 @@ Global
 		{0C77BB7B-DF35-4079-AE8F-AB3D40EDB66A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0C77BB7B-DF35-4079-AE8F-AB3D40EDB66A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0C77BB7B-DF35-4079-AE8F-AB3D40EDB66A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{88344AAB-5FEC-429F-968D-4E30A4067A26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{88344AAB-5FEC-429F-968D-4E30A4067A26}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{88344AAB-5FEC-429F-968D-4E30A4067A26}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{88344AAB-5FEC-429F-968D-4E30A4067A26}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9062C34E-89D8-425C-8930-E7EA6D264C1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9062C34E-89D8-425C-8930-E7EA6D264C1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9062C34E-89D8-425C-8930-E7EA6D264C1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -79,7 +71,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0C77BB7B-DF35-4079-AE8F-AB3D40EDB66A} = {C8EBB316-8263-4283-9261-477BD4F9858B}
-		{88344AAB-5FEC-429F-968D-4E30A4067A26} = {2C5BE668-5DE7-4ED0-82CA-5A23CCE20634}
 		{FE11A630-CBD5-4CAF-B747-4381876E29C5} = {C8EBB316-8263-4283-9261-477BD4F9858B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution

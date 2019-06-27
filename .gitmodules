@@ -1,3 +1,0 @@
-[submodule "Libraries/reactive"]
-	path = Libraries/reactive
-	url = https://github.com/dotnet/reactive.git
