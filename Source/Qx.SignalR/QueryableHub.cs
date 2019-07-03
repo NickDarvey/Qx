@@ -22,6 +22,33 @@ namespace Qx
             // TODO: Cache, but don't hold onto a reference to the Hub
             var queryables = FindQueryables(this);
 
+            var expr = expression.ToExpression();
+
+            var unboundParameters = QxAsyncQueryScanner.FindUnboundParameters(expr);
+
+
+            // queryables --> parameters --> ( , )
+            // ideally 
+            // queryables -> param -> InvocationExpression
+            // queryables -> synthparams -> param -> InvocationExpression
+            // but probably the authz checks need to happen before the last bit
+            // actually we have found the unboundparams already so really we
+            // want to pass in a premapped mapping of (param, queryable) in and the rewriter just replaces blindly
+            // and soemthing about synth params and building the invoke itself
+
+            // queryables -> unboudnparams -> [(param, queryable)]
+            // [(param, queryable)] -> Task<bool>  isComplete if all are bound
+            // [(param, queryable)] -> Task<bool>  isAuthorized
+
+            // synth?
+            // queryable :: args -> invocationexpression 
+
+            // unboundparams = bleh
+            // map to queryables, 'binding' pipelien
+            //   match up by name and types
+            //   if any param doesn't get assigned an impl, die
+            //   authorize
+
             // TOTHINK: Consider chaining visitors so intermediate trees aren't created
             var query = QxAsyncQueryRewriter.Rewrite<CancellationToken, IAsyncQueryable<object>>(
                 SignalRQxAsyncQueryRewriter.RewriteManyResultsType(expression.ToExpression()), queryables);
@@ -44,7 +71,6 @@ namespace Qx
             //   
             //   ohhh the problem is we need to apply the invoke constants and know the return type in order to actual eval it for the Task<IAQ<>> case
             //   this would still work for authz.
-
         }
 
         [HubMethodName("qx`1")]
@@ -75,6 +101,10 @@ namespace Qx
                     var call = Expression.Call(Expression.Constant(hub), m, args);
                     return Expression.Lambda(call, args);
                 });
+
+        // should i be binding synthetic params here? i can't really validate that the type of the ParameterExpression is valid against the impl without knowing the synth
+
+
 
     }
 }

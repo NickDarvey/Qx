@@ -6,21 +6,9 @@ using System.Threading;
 
 namespace Qx
 {
-    /// <summary>
-    /// Rewrites a Qx query (an expression tree with unbound AsyncQueryable<> parameters) binding it to the provided factories.
-    /// </summary>
-    /// 
-    // TODO: Move ExpressionVisitor into an encapsulated Impl class
-    public class QxAsyncQueryRewriter : ExpressionVisitor
+    public static class QxAsyncQueryRewriter
     {
-        private readonly IReadOnlyDictionary<string, LambdaExpression> _queryables;
-        private readonly IEnumerable<ParameterExpression> _parameters;
-
-        private QxAsyncQueryRewriter(IReadOnlyDictionary<string, LambdaExpression> queryables, IEnumerable<ParameterExpression> parameters)
-        {
-            _queryables = queryables;
-            _parameters = parameters;
-        }
+        private delegate InvocationExpression InvocationFactory(IEnumerable<Expression> arguments);
 
         /// <summary>
         /// Rewrites a Qx query (an expression tree with unbound <see cref="IAsyncQueryable{T}"/> parameters) binding it to the provided queryable factories
@@ -38,39 +26,53 @@ namespace Qx
             Rewrite<Func<TResult>>(expression, queryables, Enumerable.Empty<ParameterExpression>());
 
         // TODO: etc
- 
-        private static Expression<TDelegate> Rewrite<TDelegate>(Expression expression, IReadOnlyDictionary<string, LambdaExpression> queryables, IEnumerable<ParameterExpression> parameters) =>
-            Expression.Lambda<TDelegate>(new QxAsyncQueryRewriter(queryables, parameters).Visit(expression), parameters);
 
-        protected override Expression VisitInvocation(InvocationExpression node)
+        private static Expression<TDelegate> Rewrite<TDelegate>(Expression expression, IReadOnlyDictionary<string, LambdaExpression> nameBindings, IEnumerable<ParameterExpression> syntheticParameters)
         {
-            // TODO: Ensure the parameter is unbound?
-            // TODO: Look into beta reduction to see if we can lose the LambdaExpr, reduce to underlying CallExpr
-            if (node.Type.IsGenericType
-                && node.Type.GetGenericTypeDefinition() == typeof(IAsyncQueryable<>)
-                && node.Expression is ParameterExpression unboundParameterExpression)
+            var unboundParameters = QxAsyncQueryScanner.FindUnboundParameters(expression);
+
+            var bindings = (from parameter in unboundParameters
+                            join binding in nameBindings on parameter.Name equals binding.Key into pairs
+                            from pair in pairs.DefaultIfEmpty()
+                            select (Parameter: parameter, Implementation: pair.Value)).ToDictionary(kv => kv.Parameter, kv => kv.Implementation);
+
+            // TODO: less throwing plz
+
+            foreach(var binding in bindings)
             {
-                if (_queryables.TryGetValue(unboundParameterExpression.Name, out var queryable))
-                {
-                    var hasArgumentsMatchingParameters = node.Arguments
-                        .Zip(queryable.Parameters, (arg, param) => arg.Type == param.Type)
-                        .All(x => x);
-
-                    if (hasArgumentsMatchingParameters == false) throw new ArgumentException(/* TODO: Be helpful */);
-
-                    var expression = Visit(queryable);
-                    var syntheticArguments = queryable.Parameters // TODO: Error when our queryable wants more parameters than we have
-                        .Skip(node.Arguments.Count)
-                        .Zip(_parameters, (synthetic, supplied) => supplied);
-                    var arguments = node.Arguments
-                        .Concat(syntheticArguments)
-                        .Select(Visit);
-
-                    return Expression.Invoke(expression, arguments);
-                }
-                else throw new InvalidOperationException($"No known queryable named '{unboundParameterExpression.Name}'");
+                if (binding.Value == default) throw new InvalidOperationException("Some error about there being an unbound parameter");
+                if (binding.Key.Type == binding.Value.Type) continue; // An exact match
+                //if (binding.Key.Type.IsGenericType == false || binding.Key.Type.GetGenericTypeDefinition()) // TODO: Some kind of check to make sure we're actually dealing with a Func of whatever arity
+                var originalParameterTypesWithSyntheticParameterTypes = binding.Key.Type.GetGenericArguments().SkipLast(1).Concat(syntheticParameters.Select(p => p.Type));
+                var implementationParameterTypes = binding.Value.Parameters.Select(p => p.Type);
+                if (originalParameterTypesWithSyntheticParameterTypes.SequenceEqual(implementationParameterTypes) == false) throw new InvalidOperationException("Some error about params not matching");
             }
-            return base.VisitInvocation(node);
+
+            var bindingFactories = bindings.ToDictionary(kv => kv.Key, kv => CreateInvocationFactory(kv.Value, syntheticParameters));
+
+            return Expression.Lambda<TDelegate>(new Impl(bindingFactories).Visit(expression), syntheticParameters);
+        }
+
+        private static InvocationFactory CreateInvocationFactory(LambdaExpression expr, IEnumerable<ParameterExpression> parameters) =>
+            args => Expression.Invoke(expr, args.Concat(parameters));
+
+        private class Impl : ExpressionVisitor
+        {
+            private readonly IReadOnlyDictionary<ParameterExpression, InvocationFactory> _bindings;
+
+            public Impl(IReadOnlyDictionary<ParameterExpression, InvocationFactory> bindings) =>
+                _bindings = bindings;
+
+            protected override Expression VisitInvocation(InvocationExpression node)
+            {
+                if (!(node.Expression is ParameterExpression parameter))
+                    return base.VisitInvocation(node);
+
+                if (!(_bindings.TryGetValue(parameter, out var createInvocation)))
+                    throw new InvalidOperationException($"No binding provided for parameter '{parameter}'");
+
+                return createInvocation(node.Arguments);
+            }
         }
     }
 }

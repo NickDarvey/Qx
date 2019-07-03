@@ -10,23 +10,14 @@ namespace Qx.UnitTests
 {
     public class RewriterTests
     {
-        private class NotImplementedAsyncQueryServiceProvider : IAsyncQueryServiceProvider
-        {
-            public IAsyncEnumerator<T> GetAsyncEnumerator<T>(Expression expression, CancellationToken token) =>
-                throw new NotImplementedException();
-
-            public ValueTask<T> GetAsyncResult<T>(Expression expression, CancellationToken token) =>
-                throw new NotImplementedException();
-        }
-
         [Fact]
         public void Should_rewrite_simple_parameter_expression_to_invocation()
         { 
             var rangeSourceEnumerable = AsyncEnumerable.Range(0, 10);
             Expression<Func<IAsyncQueryable<int>>> range = () => rangeSourceEnumerable.AsAsyncQueryable();
-            var factories = new Dictionary<string, LambdaExpression> { { "Range", range } };
             var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
             var query = client.GetEnumerable<int>("Range");
+            var factories = new Dictionary<string, LambdaExpression> { { "Range", range } };
 
             var result = QxAsyncQueryRewriter.Rewrite<IAsyncQueryable<int>>(query.Expression, factories);
 
@@ -40,10 +31,11 @@ namespace Qx.UnitTests
             var range2SourceEnumerable = AsyncEnumerable.Range(10, 10);
             Expression<Func<IAsyncQueryable<int>>> range1 = () => range1SourceEnumerable.AsAsyncQueryable();
             Expression<Func<IAsyncQueryable<int>>> range2 = () => range2SourceEnumerable.AsAsyncQueryable();
-            var factories = new Dictionary<string, LambdaExpression> { { "Range1", range1 }, { "Range2", range2 } };
             var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
             var range1SourceQueryable = client.GetEnumerable<int>("Range1");
             var range2SourceQueryable = client.GetEnumerable<int>("Range2");
+            var factories = new Dictionary<string, LambdaExpression> { { "Range1", range1 }, { "Range2", range2 } };
+
             var query = range1SourceQueryable.Join(range2SourceQueryable, x => x, y => y, (x, y) => x + y);
             var expected = range1SourceEnumerable.Join(range2SourceEnumerable, x => x, y => y, (x, y) => x + y);
 
@@ -58,9 +50,9 @@ namespace Qx.UnitTests
         {
             var rangeCount = 10;
             Expression<Func<int, IAsyncQueryable<int>>> range = (count) => AsyncEnumerable.Range(0, count).AsAsyncQueryable();
-            var factories = new Dictionary<string, LambdaExpression> { { "Range", range } };
             var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
             var query = client.GetEnumerable<int, int>("Range")(rangeCount);
+            var factories = new Dictionary<string, LambdaExpression> { { "Range", range } };
 
             var result = QxAsyncQueryRewriter.Rewrite<IAsyncQueryable<int>>(query.Expression, factories);
 
@@ -79,14 +71,23 @@ namespace Qx.UnitTests
             var capturingQueryableObject = new CapturingQueryableObject();
             var expectedCancellationToken = new CancellationTokenSource().Token;
             Expression<Func<int, CancellationToken, IAsyncQueryable<int>>> range = (count, token) => capturingQueryableObject.Count(count, token);
-            var queryables = new Dictionary<string, LambdaExpression> { { "Range", range } };
             var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
             var query = client.GetEnumerable<int, int>("Range")(10);
+            var factories = new Dictionary<string, LambdaExpression> { { "Range", range } };
 
-            var result = QxAsyncQueryRewriter.Rewrite<CancellationToken, IAsyncQueryable<int>>(query.Expression, queryables).Compile()(expectedCancellationToken);
+            var result = QxAsyncQueryRewriter.Rewrite<CancellationToken, IAsyncQueryable<int>>(query.Expression, factories).Compile()(expectedCancellationToken);
 
             Assert.Equal(expectedCancellationToken, capturingQueryableObject.CapturedToken);
             Assert.Equal(range.Compile()(10, default).ToEnumerable(), result.ToEnumerable());
+        }
+
+        private class NotImplementedAsyncQueryServiceProvider : IAsyncQueryServiceProvider
+        {
+            public IAsyncEnumerator<T> GetAsyncEnumerator<T>(Expression expression, CancellationToken token) =>
+                throw new NotImplementedException();
+
+            public ValueTask<T> GetAsyncResult<T>(Expression expression, CancellationToken token) =>
+                throw new NotImplementedException();
         }
 
         /// <summary>
