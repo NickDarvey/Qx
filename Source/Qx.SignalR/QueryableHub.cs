@@ -22,6 +22,7 @@ namespace Qx
             // TODO: Cache, but don't hold onto a reference to the Hub
             var queryables = FindQueryables(this);
 
+            // TOTHINK: Consider chaining visitors so intermediate trees aren't created
             var query = QxAsyncQueryRewriter.Rewrite<CancellationToken, IAsyncQueryable<object>>(
                 SignalRQxAsyncQueryRewriter.RewriteManyResultsType(expression.ToExpression()), queryables);
             var invoke = query.Compile();
