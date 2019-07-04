@@ -6,6 +6,7 @@ namespace Qx
 {
     public static class QxAsyncQueryScanner
     {
+        // TODO: Return set, no duplicates?
         public static IEnumerable<ParameterExpression> FindUnboundParameters(Expression expression)
         {
             var visitor = new Impl();

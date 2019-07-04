@@ -19,38 +19,40 @@ namespace Qx
         /// <param name="expression"></param>
         /// <param name="queryables"></param>
         /// <returns></returns>
-        public static Expression<Func<TArg, TResult>> Rewrite<TArg, TResult>(Expression expression, IReadOnlyDictionary<string, LambdaExpression> queryables) =>
+        public static Expression<Func<TArg, TResult>> Rewrite<TArg, TResult>(Expression expression, IReadOnlyDictionary<ParameterExpression, LambdaExpression> queryables) =>
             Rewrite<Func<TArg, TResult>>(expression, queryables, new[] { Expression.Parameter(typeof(TArg)) });
 
-        public static Expression<Func<TResult>> Rewrite<TResult>(Expression expression, IReadOnlyDictionary<string, LambdaExpression> queryables) =>
+        public static Expression<Func<TResult>> Rewrite<TResult>(Expression expression, IReadOnlyDictionary<ParameterExpression, LambdaExpression> queryables) =>
             Rewrite<Func<TResult>>(expression, queryables, Enumerable.Empty<ParameterExpression>());
 
         // TODO: etc
 
-        private static Expression<TDelegate> Rewrite<TDelegate>(Expression expression, IReadOnlyDictionary<string, LambdaExpression> nameBindings, IEnumerable<ParameterExpression> syntheticParameters)
+        private static Expression<TDelegate> Rewrite<TDelegate>(Expression expression, IReadOnlyDictionary<ParameterExpression, LambdaExpression> bindings, IEnumerable<ParameterExpression> syntheticParameters)
         {
-            var unboundParameters = QxAsyncQueryScanner.FindUnboundParameters(expression);
-
-            var bindings = (from parameter in unboundParameters
-                            join binding in nameBindings on parameter.Name equals binding.Key into pairs
-                            from pair in pairs.DefaultIfEmpty()
-                            select (Parameter: parameter, Implementation: pair.Value)).ToDictionary(kv => kv.Parameter, kv => kv.Implementation);
-
             // TODO: less throwing plz
 
+            var bindings2 = new Dictionary<ParameterExpression, InvocationFactory>();
             foreach(var binding in bindings)
             {
                 if (binding.Value == default) throw new InvalidOperationException("Some error about there being an unbound parameter");
-                if (binding.Key.Type == binding.Value.Type) continue; // An exact match
-                //if (binding.Key.Type.IsGenericType == false || binding.Key.Type.GetGenericTypeDefinition()) // TODO: Some kind of check to make sure we're actually dealing with a Func of whatever arity
-                var originalParameterTypesWithSyntheticParameterTypes = binding.Key.Type.GetGenericArguments().SkipLast(1).Concat(syntheticParameters.Select(p => p.Type));
-                var implementationParameterTypes = binding.Value.Parameters.Select(p => p.Type);
-                if (originalParameterTypesWithSyntheticParameterTypes.SequenceEqual(implementationParameterTypes) == false) throw new InvalidOperationException("Some error about params not matching");
+
+                if (binding.Key.Type == binding.Value.Type)
+                {
+                    bindings2[binding.Key] = args => Expression.Invoke(binding.Value, args);
+                }
+
+                else // with synthetic params
+                {
+                    //if (binding.Key.Type.IsGenericType == false || binding.Key.Type.GetGenericTypeDefinition()) // TODO: Some kind of check to make sure we're actually dealing with a Func of whatever arity
+                    var originalParameterTypesWithSyntheticParameterTypes = binding.Key.Type.GetGenericArguments().SkipLast(1).Concat(syntheticParameters.Select(p => p.Type));
+                    var implementationParameterTypes = binding.Value.Parameters.Select(p => p.Type);
+                    if (originalParameterTypesWithSyntheticParameterTypes.SequenceEqual(implementationParameterTypes) == false) throw new InvalidOperationException("Some error about params not matching");
+
+                    bindings2[binding.Key] = args => Expression.Invoke(binding.Value, args.Concat(syntheticParameters));
+                }
             }
 
-            var bindingFactories = bindings.ToDictionary(kv => kv.Key, kv => CreateInvocationFactory(kv.Value, syntheticParameters));
-
-            return Expression.Lambda<TDelegate>(new Impl(bindingFactories).Visit(expression), syntheticParameters);
+            return Expression.Lambda<TDelegate>(new Impl(bindings2).Visit(expression), syntheticParameters);
         }
 
         private static InvocationFactory CreateInvocationFactory(LambdaExpression expr, IEnumerable<ParameterExpression> parameters) =>

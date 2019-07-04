@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using Serialize.Linq.Nodes;
 using System;
 using System.Collections.Generic;
@@ -11,8 +12,10 @@ using static Qx.QxAsyncQuery;
 
 namespace Qx
 {
-    public abstract class QueryableHub : Hub
+    public abstract class QueryableHub<THub> : Hub
     {
+        private static readonly IReadOnlyDictionary<string, HubMethodDescription> _hubMethods = FindQueryables2<THub>();
+
         [HubMethodName("qx`n")]
         public IAsyncEnumerable<object> GetEnumerable(ExpressionNode expression)
         {
@@ -20,11 +23,24 @@ namespace Qx
             var cancellationToken = default(CancellationToken);
 
             // TODO: Cache, but don't hold onto a reference to the Hub
-            var queryables = FindQueryables(this);
 
             var expr = expression.ToExpression();
 
             var unboundParameters = QxAsyncQueryScanner.FindUnboundParameters(expr);
+
+            var bindings = (from parameter in unboundParameters
+                            join binding in _hubMethods on parameter.Name equals binding.Key into pairs
+                            from pair in pairs.DefaultIfEmpty()
+                            select (Parameter: parameter, Implementation: pair.Value)).ToDictionary(kv => kv.Parameter, kv => kv.Implementation);
+
+            // TOTHINK: there might be a null binding, which is currently handled in the rewriter,
+            // but we could bring it up here and only create valid bindings.. .seems like it'd be a good idea
+            // TODO: no null values
+            var policies = bindings.Values.Select(v => v.AuthorizationPolicies);
+
+            // TODO: authorize
+
+            var queryables = bindings.ToDictionary(kv => kv.Key, kv => kv.Value.GetMethod(this));
 
 
             // queryables --> parameters --> ( , )
@@ -51,7 +67,7 @@ namespace Qx
 
             // TOTHINK: Consider chaining visitors so intermediate trees aren't created
             var query = QxAsyncQueryRewriter.Rewrite<CancellationToken, IAsyncQueryable<object>>(
-                SignalRQxAsyncQueryRewriter.RewriteManyResultsType(expression.ToExpression()), queryables);
+                SignalRQxAsyncQueryRewriter.RewriteManyResultsType(expr), queryables);
             var invoke = query.Compile();
             return invoke(cancellationToken);
 
@@ -73,16 +89,16 @@ namespace Qx
             //   this would still work for authz.
         }
 
-        [HubMethodName("qx`1")]
-        public Task<object> GetResult(ExpressionNode expression)
-        {
-            // TODO: Cache, but don't hold onto a reference to the Hub
-            var queryables = FindQueryables(this);
-            var query = QxAsyncQueryRewriter.Rewrite<CancellationToken, Task<object>>(
-                SignalRQxAsyncQueryRewriter.RewriteSingleResultsType(expression.ToExpression()), queryables);
-            var invoke = query.Compile();
-            return invoke(this.Context.ConnectionAborted);
-        }
+        //[HubMethodName("qx`1")]
+        //public Task<object> GetResult(ExpressionNode expression)
+        //{
+        //    // TODO: Cache, but don't hold onto a reference to the Hub
+        //    var queryables = FindQueryables(this);
+        //    var query = QxAsyncQueryRewriter.Rewrite<CancellationToken, Task<object>>(
+        //        SignalRQxAsyncQueryRewriter.RewriteSingleResultsType(expression.ToExpression()), queryables);
+        //    var invoke = query.Compile();
+        //    return invoke(this.Context.ConnectionAborted);
+        //}
 
         /// <summary>
         /// Finds methods which returns the IAsyncQueryables on a Hub.
@@ -102,9 +118,30 @@ namespace Qx
                     return Expression.Lambda(call, args);
                 });
 
-        // should i be binding synthetic params here? i can't really validate that the type of the ParameterExpression is valid against the impl without knowing the synth
+        private static IReadOnlyDictionary<string, HubMethodDescription> FindQueryables2<T>() =>
+            typeof(T).GetMethods()
+            .Where(m => m.ReturnType.IsGenericType && m.ReturnType.GetGenericTypeDefinition() == typeof(IAsyncQueryable<>))
+            .ToDictionary(
+                keySelector: m => m.GetCustomAttribute<HubMethodNameAttribute>()?.Name ?? m.Name,
+                elementSelector: m => new HubMethodDescription(
+                    getMethod: hub =>
+                    {
+                        var args = m.GetParameters().Select(p => Expression.Parameter(p.ParameterType, p.Name)).ToArray(/* generate params once */);
+                        var call = Expression.Call(Expression.Constant(hub), m, args);
+                        return Expression.Lambda(call, args);
+                    },
+                    authorizationPolicies: m.GetCustomAttributes<AuthorizeAttribute>(inherit: true)));
 
+        private class HubMethodDescription
+        {
+            public HubMethodDescription(Func<Hub, LambdaExpression> getMethod, IEnumerable<IAuthorizeData> authorizationPolicies)
+            {
+                GetMethod = getMethod;
+                AuthorizationPolicies = authorizationPolicies;
+            }
 
-
+            public Func<Hub, LambdaExpression> GetMethod { get; }
+            public IEnumerable<IAuthorizeData> AuthorizationPolicies { get; }
+        }
     }
 }
