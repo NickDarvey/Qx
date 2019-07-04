@@ -16,7 +16,7 @@ namespace Qx.SignalR.UnitTests
             var expression = Expression.Invoke(
                 Expression.Parameter(sourceType));
 
-            var result = SignalRQxAsyncQueryRewriter.RewriteSingleResultsType(expression);
+            var result = SignalRRewriters.RewriteSingleResultsType(expression);
 
             Assert.Equal(expectedReturnType, result.Type);
         }
@@ -29,7 +29,7 @@ namespace Qx.SignalR.UnitTests
             var expression = Expression.Invoke(
                 Expression.Parameter(sourceType));
 
-            var result = SignalRQxAsyncQueryRewriter.RewriteManyResultsType(expression);
+            var result = SignalRRewriters.RewriteManyResultsType(expression);
 
             Assert.Equal(expectedReturnType, result.Type);
         }

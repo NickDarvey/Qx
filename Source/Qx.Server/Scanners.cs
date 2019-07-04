@@ -4,7 +4,10 @@ using System.Linq.Expressions;
 
 namespace Qx
 {
-    public static class QxAsyncQueryScanner
+    /// <summary>
+    /// A collection of functions that walk expression trees to collect information.
+    /// </summary>
+    public static class Scanners
     {
         // TODO: Return set, no duplicates?
         public static IEnumerable<ParameterExpression> FindUnboundParameters(Expression expression)

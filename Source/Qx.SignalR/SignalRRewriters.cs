@@ -1,14 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Qx
 {
-    public static class SignalRQxAsyncQueryRewriter
+    /// <summary>
+    /// A collection of functions for rewrite expression trees.
+    /// </summary>
+    internal static class SignalRRewriters
     {
         /// <summary>
         /// Rewrites an <see cref="Expression"/> which returns a <see cref="IAsyncQueryable{T}"/> or <see cref="Task{IAsyncQueryable{T}}"/>

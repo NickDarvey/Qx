@@ -11,7 +11,7 @@ namespace Qx.UnitTests
         {
             Expression<Func<int, int, int>> expr = (x, y) => x + y;
 
-            var parameters = QxAsyncQueryScanner.FindUnboundParameters(expr);
+            var parameters = Scanners.FindUnboundParameters(expr);
 
             Assert.Empty(parameters);
         }
@@ -26,7 +26,7 @@ namespace Qx.UnitTests
                     right: param1),
                 param1);
 
-            var parameters = QxAsyncQueryScanner.FindUnboundParameters(expr);
+            var parameters = Scanners.FindUnboundParameters(expr);
 
             Assert.Single(parameters, p => p.Name == "unbound");
         }

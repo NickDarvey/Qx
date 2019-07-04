@@ -19,7 +19,7 @@ namespace Qx.UnitTests
             var query = client.GetEnumerable<int>("Range");
             var bindings = CreateBindings((query, source));
 
-            var result = QxAsyncQueryRewriter.Rewrite(query.Expression, bindings);
+            var result = Rewriters.Rewrite(query.Expression, bindings);
 
             var invoke = Expression.Lambda<Func<IAsyncQueryable<int>>>(result).Compile();
             Assert.Equal(range.ToEnumerable(), invoke().ToEnumerable());
@@ -39,7 +39,7 @@ namespace Qx.UnitTests
             var query = querySource1.Join(querySource2, x => x, y => y, (x, y) => x + y);
             var expected = range1.Join(range2, x => x, y => y, (x, y) => x + y);
 
-            var result = QxAsyncQueryRewriter.Rewrite(query.Expression, bindings);
+            var result = Rewriters.Rewrite(query.Expression, bindings);
 
             var invoke = Expression.Lambda<Func<IAsyncQueryable<int>>>(result).Compile();
             Assert.Equal(expected.ToEnumerable(), invoke().ToEnumerable());
@@ -56,13 +56,13 @@ namespace Qx.UnitTests
             var query = client.GetEnumerable<int, int, int>("Range")(start, count);
             var bindings = CreateBindings((query, source));
 
-            var result = QxAsyncQueryRewriter.Rewrite(query.Expression, bindings);
+            var result = Rewriters.Rewrite(query.Expression, bindings);
 
             var invoke = Expression.Lambda<Func<IAsyncQueryable<int>>>(result).Compile();
             Assert.Equal(range(start, count).ToEnumerable(), invoke().ToEnumerable());
         }
 
-        // TODO: Move tests into SignalR project
+        // TODO: Move tests into SignalR project, probably an integration test
 
         ///// <summary>
         ///// Implementations of source enumerables might require cancellation.
@@ -101,8 +101,8 @@ namespace Qx.UnitTests
         //    Assert.Equal(range.Compile()(10).ToEnumerable(), result.ToEnumerable());
         //}
 
-        private static IReadOnlyDictionary<ParameterExpression, QxAsyncQueryRewriter.InvocationFactory> CreateBindings(params (IAsyncQueryable Query, LambdaExpression Impl)[] bindings) =>
-            bindings.ToDictionary<(IAsyncQueryable Query, LambdaExpression Impl), ParameterExpression, QxAsyncQueryRewriter.InvocationFactory>(
+        private static IReadOnlyDictionary<ParameterExpression, Rewriters.InvocationFactory> CreateBindings(params (IAsyncQueryable Query, LambdaExpression Impl)[] bindings) =>
+            bindings.ToDictionary<(IAsyncQueryable Query, LambdaExpression Impl), ParameterExpression, Rewriters.InvocationFactory>(
                 keySelector: binding => (ParameterExpression)((InvocationExpression)binding.Query.Expression).Expression,
                 elementSelector: binding => args => Expression.Invoke(binding.Impl, args));
 
