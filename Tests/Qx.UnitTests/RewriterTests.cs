@@ -12,93 +12,99 @@ namespace Qx.UnitTests
     {
         [Fact]
         public void Should_rewrite_simple_parameter_expression_to_invocation()
-        { 
-            var rangeSourceEnumerable = AsyncEnumerable.Range(0, 10);
-            Expression<Func<IAsyncQueryable<int>>> range = () => rangeSourceEnumerable.AsAsyncQueryable();
+        {
+            var range = AsyncEnumerable.Range(0, 10);
+            Expression<Func<IAsyncQueryable<int>>> source = () => range.AsAsyncQueryable();
             var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
             var query = client.GetEnumerable<int>("Range");
-            var factories = new Dictionary<ParameterExpression, LambdaExpression> { { GetParam(query), range } };
+            var bindings = CreateBindings((query, source));
 
-            var result = QxAsyncQueryRewriter.Rewrite<IAsyncQueryable<int>>(query.Expression, factories);
+            var result = QxAsyncQueryRewriter.Rewrite(query.Expression, bindings);
 
-            Assert.Equal(rangeSourceEnumerable.ToEnumerable(), result.Compile()().ToEnumerable());
+            var invoke = Expression.Lambda<Func<IAsyncQueryable<int>>>(result).Compile();
+            Assert.Equal(range.ToEnumerable(), invoke().ToEnumerable());
         }
 
         [Fact]
         public void Should_rewrite_multiple_parameter_expressions_to_invocations()
         {
-            var range1SourceEnumerable = AsyncEnumerable.Range(0, 10);
-            var range2SourceEnumerable = AsyncEnumerable.Range(10, 10);
-            Expression<Func<IAsyncQueryable<int>>> range1 = () => range1SourceEnumerable.AsAsyncQueryable();
-            Expression<Func<IAsyncQueryable<int>>> range2 = () => range2SourceEnumerable.AsAsyncQueryable();
+            var range1 = AsyncEnumerable.Range(0, 10);
+            var range2 = AsyncEnumerable.Range(10, 10);
+            Expression<Func<IAsyncQueryable<int>>> source1 = () => range1.AsAsyncQueryable();
+            Expression<Func<IAsyncQueryable<int>>> source2 = () => range2.AsAsyncQueryable();
             var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
-            var range1SourceQueryable = client.GetEnumerable<int>("Range1");
-            var range2SourceQueryable = client.GetEnumerable<int>("Range2");
-            var factories = new Dictionary<ParameterExpression, LambdaExpression> { { GetParam(range1SourceQueryable), range1 }, { GetParam(range2SourceQueryable), range2 } };
+            var querySource1 = client.GetEnumerable<int>("Range1");
+            var querySource2 = client.GetEnumerable<int>("Range2");
+            var bindings = CreateBindings((querySource1, source1), (querySource2, source2));
+            var query = querySource1.Join(querySource2, x => x, y => y, (x, y) => x + y);
+            var expected = range1.Join(range2, x => x, y => y, (x, y) => x + y);
 
-            var query = range1SourceQueryable.Join(range2SourceQueryable, x => x, y => y, (x, y) => x + y);
-            var expected = range1SourceEnumerable.Join(range2SourceEnumerable, x => x, y => y, (x, y) => x + y);
+            var result = QxAsyncQueryRewriter.Rewrite(query.Expression, bindings);
 
-            var result = QxAsyncQueryRewriter.Rewrite<IAsyncQueryable<int>>(query.Expression, factories);
-
-            Assert.Equal(expected.ToEnumerable(), result.Compile()().ToEnumerable());
+            var invoke = Expression.Lambda<Func<IAsyncQueryable<int>>>(result).Compile();
+            Assert.Equal(expected.ToEnumerable(), invoke().ToEnumerable());
         }
 
 
         [Fact]
         public void Should_rewrite_parameter_expressions_with_arguments_to_invocations()
         {
-            var rangeCount = 10;
-            Expression<Func<int, IAsyncQueryable<int>>> range = (count) => AsyncEnumerable.Range(0, count).AsAsyncQueryable();
+            var start = 0; var count = 10;
+            Func<int, int, IAsyncEnumerable<int>> range = (start, count) => AsyncEnumerable.Range(start, count);
+            Expression<Func<int, int, IAsyncQueryable<int>>> source = (start, count) => range(start, count).AsAsyncQueryable();
             var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
-            var query = client.GetEnumerable<int, int>("Range")(rangeCount);
-            var factories = new Dictionary<ParameterExpression, LambdaExpression> { { GetParam(query), range } };
+            var query = client.GetEnumerable<int, int, int>("Range")(start, count);
+            var bindings = CreateBindings((query, source));
 
-            var result = QxAsyncQueryRewriter.Rewrite<IAsyncQueryable<int>>(query.Expression, factories);
+            var result = QxAsyncQueryRewriter.Rewrite(query.Expression, bindings);
 
-            Assert.Equal(Enumerable.Range(0, rangeCount), result.Compile()().ToEnumerable());
-
+            var invoke = Expression.Lambda<Func<IAsyncQueryable<int>>>(result).Compile();
+            Assert.Equal(range(start, count).ToEnumerable(), invoke().ToEnumerable());
         }
 
+        // TODO: Move tests into SignalR project
 
-        /// <summary>
-        /// Implementations of source enumerables might require cancellation.
-        /// (We're doing what the compiler does when it sees a [EnumerationCancellation] but at runtime.)
-        /// </summary>
-        [Fact]
-        public void Should_inject_synthetic_cancellation_token_argument()
-        {
-            var capturingQueryableObject = new CapturingQueryableObject();
-            var expectedCancellationToken = new CancellationTokenSource().Token;
-            Expression<Func<int, CancellationToken, IAsyncQueryable<int>>> range = (count, token) => capturingQueryableObject.Count(count, token);
-            var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
-            var query = client.GetEnumerable<int, int>("Range")(10);
-            var factories = new Dictionary<ParameterExpression, LambdaExpression> { { GetParam(query), range } };
+        ///// <summary>
+        ///// Implementations of source enumerables might require cancellation.
+        ///// (We're doing what the compiler does when it sees a [EnumerationCancellation] but at runtime.)
+        ///// </summary>
+        //[Fact]
+        //public void Should_inject_synthetic_cancellation_token_argument()
+        //{
+        //    var capturingQueryableObject = new CapturingQueryableObject();
+        //    var expectedCancellationToken = new CancellationTokenSource().Token;
+        //    Expression<Func<int, CancellationToken, IAsyncQueryable<int>>> range = (count, token) => capturingQueryableObject.Count(count, token);
+        //    var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
+        //    var query = client.GetEnumerable<int, int>("Range")(10);
+        //    var factories = new Dictionary<ParameterExpression, LambdaExpression> { { GetParam(query), range } };
 
-            var result = QxAsyncQueryRewriter.Rewrite<CancellationToken, IAsyncQueryable<int>>(query.Expression, factories).Compile()(expectedCancellationToken);
+        //    var result = QxAsyncQueryRewriter.Rewrite<CancellationToken, IAsyncQueryable<int>>(query.Expression, factories).Compile()(expectedCancellationToken);
 
-            Assert.Equal(expectedCancellationToken, capturingQueryableObject.CapturedToken);
-            Assert.Equal(range.Compile()(10, default).ToEnumerable(), result.ToEnumerable());
-        }
+        //    Assert.Equal(expectedCancellationToken, capturingQueryableObject.CapturedToken);
+        //    Assert.Equal(range.Compile()(10, default).ToEnumerable(), result.ToEnumerable());
+        //}
 
-        /// <summary>
-        /// Implementations of source enumerables might require cancellation, or might not.
-        /// We allow users of the rewriter to supply a token, but the source might not accept it.
-        /// </summary>
-        [Fact]
-        public void Should_not_inject_synthetic_cancellation_token_argument_if_there_is_no_param_in_source()
-        {
-            Expression<Func<int, IAsyncQueryable<int>>> range = (count) => AsyncEnumerable.Range(0, count).AsAsyncQueryable();
-            var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
-            var query = client.GetEnumerable<int, int>("Range")(10);
-            var factories = new Dictionary<ParameterExpression, LambdaExpression> { { GetParam(query), range } };
+        ///// <summary>
+        ///// Implementations of source enumerables might require cancellation, or might not.
+        ///// We allow users of the rewriter to supply a token, but the source might not accept it.
+        ///// </summary>
+        //[Fact]
+        //public void Should_not_inject_synthetic_cancellation_token_argument_if_there_is_no_param_in_source()
+        //{
+        //    Expression<Func<int, IAsyncQueryable<int>>> range = (count) => AsyncEnumerable.Range(0, count).AsAsyncQueryable();
+        //    var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
+        //    var query = client.GetEnumerable<int, int>("Range")(10);
+        //    var factories = new Dictionary<ParameterExpression, LambdaExpression> { { GetParam(query), range } };
 
-            var result = QxAsyncQueryRewriter.Rewrite<CancellationToken, IAsyncQueryable<int>>(query.Expression, factories).Compile()(default);
+        //    var result = QxAsyncQueryRewriter.Rewrite<CancellationToken, IAsyncQueryable<int>>(query.Expression, factories).Compile()(default);
 
-            Assert.Equal(range.Compile()(10).ToEnumerable(), result.ToEnumerable());
-        }
+        //    Assert.Equal(range.Compile()(10).ToEnumerable(), result.ToEnumerable());
+        //}
 
-        private static ParameterExpression GetParam(IAsyncQueryable query) => (ParameterExpression)((InvocationExpression)query.Expression).Expression;
+        private static IReadOnlyDictionary<ParameterExpression, QxAsyncQueryRewriter.InvocationFactory> CreateBindings(params (IAsyncQueryable Query, LambdaExpression Impl)[] bindings) =>
+            bindings.ToDictionary<(IAsyncQueryable Query, LambdaExpression Impl), ParameterExpression, QxAsyncQueryRewriter.InvocationFactory>(
+                keySelector: binding => (ParameterExpression)((InvocationExpression)binding.Query.Expression).Expression,
+                elementSelector: binding => args => Expression.Invoke(binding.Impl, args));
 
         private class NotImplementedAsyncQueryServiceProvider : IAsyncQueryServiceProvider
         {
