@@ -62,45 +62,6 @@ namespace Qx.UnitTests
             Assert.Equal(range(start, count).ToEnumerable(), invoke().ToEnumerable());
         }
 
-        // TODO: Move tests into SignalR project, probably an integration test
-
-        ///// <summary>
-        ///// Implementations of source enumerables might require cancellation.
-        ///// (We're doing what the compiler does when it sees a [EnumerationCancellation] but at runtime.)
-        ///// </summary>
-        //[Fact]
-        //public void Should_inject_synthetic_cancellation_token_argument()
-        //{
-        //    var capturingQueryableObject = new CapturingQueryableObject();
-        //    var expectedCancellationToken = new CancellationTokenSource().Token;
-        //    Expression<Func<int, CancellationToken, IAsyncQueryable<int>>> range = (count, token) => capturingQueryableObject.Count(count, token);
-        //    var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
-        //    var query = client.GetEnumerable<int, int>("Range")(10);
-        //    var factories = new Dictionary<ParameterExpression, LambdaExpression> { { GetParam(query), range } };
-
-        //    var result = QxAsyncQueryRewriter.Rewrite<CancellationToken, IAsyncQueryable<int>>(query.Expression, factories).Compile()(expectedCancellationToken);
-
-        //    Assert.Equal(expectedCancellationToken, capturingQueryableObject.CapturedToken);
-        //    Assert.Equal(range.Compile()(10, default).ToEnumerable(), result.ToEnumerable());
-        //}
-
-        ///// <summary>
-        ///// Implementations of source enumerables might require cancellation, or might not.
-        ///// We allow users of the rewriter to supply a token, but the source might not accept it.
-        ///// </summary>
-        //[Fact]
-        //public void Should_not_inject_synthetic_cancellation_token_argument_if_there_is_no_param_in_source()
-        //{
-        //    Expression<Func<int, IAsyncQueryable<int>>> range = (count) => AsyncEnumerable.Range(0, count).AsAsyncQueryable();
-        //    var client = new QxAsyncQueryClient(new NotImplementedAsyncQueryServiceProvider());
-        //    var query = client.GetEnumerable<int, int>("Range")(10);
-        //    var factories = new Dictionary<ParameterExpression, LambdaExpression> { { GetParam(query), range } };
-
-        //    var result = QxAsyncQueryRewriter.Rewrite<CancellationToken, IAsyncQueryable<int>>(query.Expression, factories).Compile()(default);
-
-        //    Assert.Equal(range.Compile()(10).ToEnumerable(), result.ToEnumerable());
-        //}
-
         private static IReadOnlyDictionary<ParameterExpression, Rewriters.InvocationFactory> CreateBindings(params (IAsyncQueryable Query, LambdaExpression Impl)[] bindings) =>
             bindings.ToDictionary<(IAsyncQueryable Query, LambdaExpression Impl), ParameterExpression, Rewriters.InvocationFactory>(
                 keySelector: binding => (ParameterExpression)((InvocationExpression)binding.Query.Expression).Expression,
@@ -113,20 +74,6 @@ namespace Qx.UnitTests
 
             public ValueTask<T> GetAsyncResult<T>(Expression expression, CancellationToken token) =>
                 throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Artifact for <see cref="Should_inject_synthetic_cancellation_token_argument"/>.
-        /// </summary>
-        private class CapturingQueryableObject
-        {
-            public CancellationToken CapturedToken { get; private set; }
-
-            public IAsyncQueryable<int> Count(int count, CancellationToken token)
-            {
-                CapturedToken = token;
-                return AsyncEnumerable.Range(0, count).AsAsyncQueryable();
-            }
         }
     }
 }
