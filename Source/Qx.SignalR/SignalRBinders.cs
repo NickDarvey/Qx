@@ -1,12 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace Qx
 {
@@ -16,42 +11,22 @@ namespace Qx
     internal static class SignalRBinders
     {
         /// <summary>
-        /// Finds methods which returns the IAsyncQueryables on a Hub.
+        /// Binds methods to a set of parameters by name.
         /// </summary>
-        /// <param name="hub"></param>
-        /// <param name="nameSelector"></param>
-        /// <returns>A dictionary with the name of the queryable and a lambda expression which returns the queryable when invoked.</returns>
-        public static IReadOnlyDictionary<string, HubMethodDescription> FindQueryables<T>() =>
-            typeof(T).GetMethods()
-            .Where(m => m.ReturnType.IsGenericType && m.ReturnType.GetGenericTypeDefinition() == typeof(IAsyncQueryable<>))
-            .ToDictionary(
-                keySelector: m => m.GetCustomAttribute<HubMethodNameAttribute>()?.Name ?? m.Name,
-                elementSelector: m => new HubMethodDescription(
-                    getMethod: hub =>
-                    {
-                        var args = m.GetParameters().Select(p => Expression.Parameter(p.ParameterType, p.Name)).ToArray(/* generate params once */);
-                        var call = Expression.Call(Expression.Constant(hub), m, args);
-                        return Expression.Lambda(call, args);
-                    },
-                    authorizationPolicies: m.GetCustomAttributes<AuthorizeAttribute>(inherit: true)));
-
-        public static async ValueTask<bool> Authorize(ClaimsPrincipal user, IAuthorizationService service, IAuthorizationPolicyProvider policyProvider, IEnumerable<IAuthorizeData> policies)
+        /// <param name="parameters"></param>
+        /// <param name="nameMethodBindings"></param>
+        /// <param name="parameterMethodBindings"></param>
+        /// <param name="errors"></param>
+        /// <returns></returns>
+        public static bool TryBindMethods<TSourceDescription>(IEnumerable<ParameterExpression> parameters, IReadOnlyDictionary<string, TSourceDescription> nameMethodBindings, out IReadOnlyDictionary<ParameterExpression, TSourceDescription> parameterMethodBindings, out IEnumerable<string> errors)
         {
-            if (policies.Any() == false) return true;
-            var combinedPolicy = await AuthorizationPolicy.CombineAsync(policyProvider, policies);
-            var result = await service.AuthorizeAsync(user, combinedPolicy);
-            return result.Succeeded;
-        }
-
-        public static bool TryBindMethods(IEnumerable<ParameterExpression> parameters, IReadOnlyDictionary<string, HubMethodDescription> methods, out IReadOnlyDictionary<ParameterExpression, HubMethodDescription> bindings, out IEnumerable<string> errors)
-        {
-            var bindings_ = new Dictionary<ParameterExpression, HubMethodDescription>();
+            var bindings_ = new Dictionary<ParameterExpression, TSourceDescription>();
             var errors_ = default(List<string>);
             foreach (var parameter in parameters)
             {
                 // We don't test if the parameters match yet, because there could be synthetic parameters used,
                 // we just ensure that such a method exists.
-                if (methods.TryGetValue(parameter.Name, out var method))
+                if (nameMethodBindings.TryGetValue(parameter.Name, out var method))
                 {
                     bindings_[parameter] = method;
                 }
@@ -64,14 +39,14 @@ namespace Qx
 
             if (errors_?.Count > 0)
             {
-                bindings = default;
+                parameterMethodBindings = default;
                 errors = errors_;
                 return false;
             }
 
             else
             {
-                bindings = bindings_;
+                parameterMethodBindings = bindings_;
                 errors = default;
                 return true;
             }
@@ -131,18 +106,6 @@ namespace Qx
                 errors = default;
                 return true;
             }
-        }
-
-        public class HubMethodDescription
-        {
-            public HubMethodDescription(Func<Hub, LambdaExpression> getMethod, IEnumerable<IAuthorizeData> authorizationPolicies)
-            {
-                GetMethod = getMethod;
-                AuthorizationPolicies = authorizationPolicies;
-            }
-
-            public Func<Hub, LambdaExpression> GetMethod { get; }
-            public IEnumerable<IAuthorizeData> AuthorizationPolicies { get; }
         }
     }
 }

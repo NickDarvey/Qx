@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using static Qx.Rewriters;
@@ -12,48 +13,61 @@ using static Qx.SignalRRewriters;
 
 namespace Qx
 {
-    public abstract class QueryableHub<THub> : Hub
+    /// <summary>
+    /// A collection of functions for creating a queryable hub.
+    /// </summary>
+    public static class QueryableHub
     {
-        private static readonly IReadOnlyDictionary<string, HubMethodDescription> _hubMethods = FindQueryables<THub>();
+        public delegate Task<bool> Authorizer<TMethodDescription>(IEnumerable<TMethodDescription> bindings) where TMethodDescription : IQueryableSourceDescription;
 
-        [HubMethodName("qx`n")]
-        public async Task<IAsyncEnumerable<object>> GetEnumerable(ExpressionNode expression)
+        public interface IQueryableSourceDescription
         {
-            // Till https://github.com/aspnet/AspNetCore/issues/11495
-            var cancellationToken = Context.ConnectionAborted;
-
-            var query = await CompileQuery<IAsyncQueryable<object>>(expression, RewriteManyResultsType);
-
-            return query(cancellationToken);
+            MethodInfo Method { get; }
+            object Instance { get; }
         }
 
-        [HubMethodName("qx`1")]
-        public async Task<object> GetResult(ExpressionNode expression)
+        public static Task<Func<CancellationToken, IAsyncQueryable<object>>> CompileEnumerableQuery<TSourceDescription>(
+            ExpressionNode query,
+            Authorizer<TSourceDescription> authorizer,
+            IReadOnlyDictionary<string, TSourceDescription> bindings) where TSourceDescription : IQueryableSourceDescription =>
+            CompileQuery<TSourceDescription, IAsyncQueryable<object>>(query, authorizer, bindings, RewriteManyResultsType);
+
+        public static Task<Func<CancellationToken, Task<object>>> CompileExecutableQuery<TSourceDescription>(
+            ExpressionNode query,
+            Authorizer<TSourceDescription> authorizer,
+            IReadOnlyDictionary<string, TSourceDescription> bindings) where TSourceDescription : IQueryableSourceDescription =>
+            CompileQuery<TSourceDescription, Task<object>>(query, authorizer, bindings, RewriteSingleResultsType);
+
+        internal static async Task<Func<CancellationToken, TResult>> CompileQuery<TSourceDescription, TResult>(
+            ExpressionNode query,
+            Authorizer<TSourceDescription> authorizer,
+            IReadOnlyDictionary<string, TSourceDescription> bindings,
+            Func<Expression, Expression> boxingRewriter) where TSourceDescription : IQueryableSourceDescription
         {
-            var query = await CompileQuery<Task<object>>(expression, RewriteSingleResultsType);
-            return await query(Context.ConnectionAborted);
-        }
 
-        private async Task<Func<CancellationToken, TResult>> CompileQuery<TResult>(ExpressionNode expression, Func<Expression, Expression> boxingRewriter)
-        {
-            var expr = expression.ToExpression();
+            var expression = query.ToExpression();
 
-            var unboundParameters = Scanners.FindUnboundParameters(expr);
+            var unboundParameters = Scanners.FindUnboundParameters(expression);
 
-            var isMethodsBound = TryBindMethods(unboundParameters, _hubMethods, out var methodBindings, out var methodBindingErrors);
+            var isMethodsBound = TryBindMethods(unboundParameters, bindings, out var methodBindings, out var methodBindingErrors);
             if (isMethodsBound == false) throw new HubException($"Failed to bind query to hub methods. {string.Join("; ", methodBindingErrors)}");
 
-            var isAuthorized = await Authorize(Context.User, null, null, methodBindings.Values.SelectMany(v => v.AuthorizationPolicies));
+            var isAuthorized = await authorizer(methodBindings.Values);
             if (isAuthorized == false) throw new HubException("Some helpful message about authorization");
 
-            var lambdaBindings = methodBindings.ToDictionary(kv => kv.Key, kv => kv.Value.GetMethod(this));
+            var expressionBindings = methodBindings.ToDictionary(b => b.Key, b =>
+            {
+                var args = b.Value.Method.GetParameters().Select(p => Expression.Parameter(p.ParameterType, p.Name)).ToArray();
+                var call = Expression.Call(Expression.Constant(b.Value.Instance), b.Value.Method, args);
+                return Expression.Lambda(call, args);
+            });
 
             var syntheticParameters = new[] { Expression.Parameter(typeof(CancellationToken)) };
 
-            var isInvocationsBound = TryBindInvocations(lambdaBindings, syntheticParameters, out var invocationBindings, out var invocationBindingErrors);
+            var isInvocationsBound = TryBindInvocations(expressionBindings, syntheticParameters, out var invocationBindings, out var invocationBindingErrors);
             if (isInvocationsBound == false) throw new HubException($"Failed to bind query to hub methods. {string.Join("; ", invocationBindingErrors)}");
 
-            var boundQuery = Rewrite(expr, invocationBindings);
+            var boundQuery = Rewrite(expression, invocationBindings);
             var boxedQuery = boxingRewriter(boundQuery);
 
             var invoke = Expression.Lambda<Func<CancellationToken, TResult>>(boxedQuery, syntheticParameters).Compile();

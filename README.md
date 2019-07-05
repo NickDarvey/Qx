@@ -16,11 +16,23 @@
   * Bearer tokens https://docs.microsoft.com/en-us/aspnet/core/signalr/authn-and-authz?view=aspnetcore-2.2#bearer-token-authentication
     Some fun stuff with JwtBearerEvents.OnMessageReceived
   * AuthorizeAttribute https://docs.microsoft.com/en-us/aspnet/core/signalr/authn-and-authz?view=aspnetcore-3.0#authorize-users-to-access-hubs-and-hub-methods
-
-* Handle mismatched arity
+* ~~Handle mismatched arity~~
+* ~~Cache the Hub resolution stuff~~
+* ~~Consider making authorization service optional~~
+  You can create your own queryable hubs!
+* Consider moving binders into core project (not SignalR specific?)
+* ~~Support type argument for hub client~~
+* Figure out why the websocket is closing unexpectedly in the sample
 * Add a nice ASP.NET COre style API (builder etc)
-* Cache the Hub resolution stuff
+* ~~Consider making the endpoint names configurable~~
+  You can create your own queryable hubs!
+* Allow for generators to be preconfigured (e.g. range)
+* Add JsonConverter or some such to support System.Text.Json
+* Probably replace serializelinq library
+* Add a whitelist of allowed types/methods
 * Support Task<IAsyncEnumerable<T>>
+
+
 
 ## Limitations
 The integration with SignalR is uhh- lacking. If they add new features, they'll need to be added in Qx too.
