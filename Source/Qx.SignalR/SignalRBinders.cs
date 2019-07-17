@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using static Qx.Fx.Prelude;
 
 namespace Qx
 {
@@ -20,6 +21,9 @@ namespace Qx
         /// <returns></returns>
         public static bool TryBindMethods<TSourceDescription>(IEnumerable<ParameterExpression> parameters, IReadOnlyDictionary<string, TSourceDescription> nameMethodBindings, out IReadOnlyDictionary<ParameterExpression, TSourceDescription> parameterMethodBindings, out IEnumerable<string> errors)
         {
+            // TODO: Let's try a functional way of impl this, 'coz it'd be fun
+            // nameMethodBindings -> parameters -> Either<Errors, Map<ParameterExpression, TDesc>>
+            // parameters.Select(name => nameMethodBindings.TryGetValue(parameters.Name, out var method) ? Right(method) : Left("NoMethodFound"))
             var bindings_ = new Dictionary<ParameterExpression, TSourceDescription>();
             var errors_ = default(List<string>);
             foreach (var parameter in parameters)
@@ -51,6 +55,12 @@ namespace Qx
                 return true;
             }
         }
+
+        public static Either<IEnumerable<string>, IEnumerable<(ParameterExpression, TSourceDescription)>> TryBindMethods2<TSourceDescription>(IEnumerable<ParameterExpression> parameters, IReadOnlyDictionary<string, TSourceDescription> nameMethodBindings) =>
+            parameters.Select(parameter => nameMethodBindings.TryGetValue(parameter.Name, out var method)
+                ? Right<string, (ParameterExpression, TSourceDescription)>((parameter, method))
+                : Left<string, (ParameterExpression, TSourceDescription)>($"Method not found"))
+            .Sequence();
 
         /// <summary>
         /// Tries to converts lambda bindings to invocation (factory) bindings, injecting optional synthetic parameters if needed.
