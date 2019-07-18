@@ -16,7 +16,7 @@ namespace Qx.SignalR.UnitTests
             var args = new[] { Expression.Constant(1) };
             var lambdaBindings = new Dictionary<ParameterExpression, LambdaExpression> { { param, lambda } };
 
-            var isBound = SignalRBinders.TryBindInvocations(lambdaBindings, Enumerable.Empty<ParameterExpression>(), out var invocationBindings, out var errors);
+            var isBound = Binders.TryBindInvocations(lambdaBindings, Enumerable.Empty<ParameterExpression>(), out var invocationBindings, out var errors);
 
             Assert.True(isBound);
             Assert.Null(errors);
@@ -33,7 +33,7 @@ namespace Qx.SignalR.UnitTests
             var args = new[] { Expression.Constant(1) }; // Our runtime arguments (non-synthetic, our synthetic args would be supplied later)
             var lambdaBindings = new Dictionary<ParameterExpression, LambdaExpression> { { param, lambda } };
 
-            var isBound = SignalRBinders.TryBindInvocations(lambdaBindings, syntheticParameters, out var invocationBindings, out var errors);
+            var isBound = Binders.TryBindInvocations(lambdaBindings, syntheticParameters, out var invocationBindings, out var errors);
 
             Assert.True(isBound);
             Assert.Null(errors);
@@ -50,7 +50,7 @@ namespace Qx.SignalR.UnitTests
             var args = new[] { Expression.Constant(1) };
             var lambdaBindings = new Dictionary<ParameterExpression, LambdaExpression> { { param, lambda } };
 
-            var isBound = SignalRBinders.TryBindInvocations(lambdaBindings, syntheticParameters, out var invocationBindings, out var errors);
+            var isBound = Binders.TryBindInvocations(lambdaBindings, syntheticParameters, out var invocationBindings, out var errors);
 
             Assert.False(isBound);
             Assert.Null(invocationBindings);
@@ -68,7 +68,7 @@ namespace Qx.SignalR.UnitTests
             var args = new[] { Expression.Constant(1) };
             var lambdaBindings = new Dictionary<ParameterExpression, LambdaExpression> { { param, lambda } };
 
-            var isBound = SignalRBinders.TryBindInvocations(lambdaBindings, syntheticParameters, out var invocationBindings, out var errors);
+            var isBound = Binders.TryBindInvocations(lambdaBindings, syntheticParameters, out var invocationBindings, out var errors);
 
             Assert.False(isBound);
             Assert.Null(invocationBindings);

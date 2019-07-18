@@ -4,12 +4,12 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Qx
+namespace Qx.SignalR
 {
     /// <summary>
     /// A collection of functions for rewrite expression trees.
     /// </summary>
-    internal static class SignalRRewriters
+    internal static class Rewriters
     {
         /// <summary>
         /// Rewrites an <see cref="Expression"/> which returns a <see cref="IAsyncQueryable{T}"/> or <see cref="Task{IAsyncQueryable{T}}"/>
@@ -77,10 +77,5 @@ namespace Qx
                     continuationArg1Parameter)
                 );
         }
-        //public override Expression Visit(Expression node)
-        //{
-        //    if (node.Type)
-        //        return base.Visit(node);
-        //}
     }
 }

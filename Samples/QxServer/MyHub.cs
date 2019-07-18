@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Qx;
+using Qx.SignalR;
 using System.Linq;
 
 namespace QxServer

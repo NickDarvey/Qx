@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
-using static Qx.QueryableHub;
+using static Qx.SignalR.QueryableHub;
 
-namespace Qx
+namespace Qx.SignalR
 {
     /// <summary>
     /// A collection of functions for using a <see cref="Hub"/> as a queryable source.

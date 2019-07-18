@@ -8,10 +8,10 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using static Qx.Rewriters;
-using static Qx.SignalRBinders;
-using static Qx.SignalRRewriters;
+using static Qx.SignalR.Binders;
+using static Qx.SignalR.Rewriters;
 
-namespace Qx
+namespace Qx.SignalR
 {
     /// <summary>
     /// A collection of functions for creating a queryable hub.

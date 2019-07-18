@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.SignalR;
 using Serialize.Linq.Nodes;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using static Qx.HubSources;
-using static Qx.QueryableHub;
+using static Qx.SignalR.HubSources;
+using static Qx.SignalR.QueryableHub;
 
-namespace Qx
+namespace Qx.SignalR
 {
     public abstract class QueryableHub<THub> : Hub
     {

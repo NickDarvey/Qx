@@ -31,7 +31,7 @@
 * Probably replace serializelinq library
 * Add a whitelist of allowed types/methods
 * Support Task<IAsyncEnumerable<T>>
-
+* Do I support async IAsyncEnumerable<> HubMethod()s?
 
 
 ## Limitations
