@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Properties\launchSettings.json.nope" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Properties\launchSettings.json.nope" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson" Version="3.0.0-preview6.19307.2" />
+    <!--<PackageReference Include="System.Interactive.Async" Version="4.0.0-preview.6.build.801" />-->
+    <PackageReference Include="System.Interactive.Async.Providers" Version="4.0.0-preview.6.build.801" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nyse.Schema\Nyse.Schema.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Hubs\" />
+  </ItemGroup>
+
+</Project>
