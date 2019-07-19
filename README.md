@@ -20,10 +20,12 @@
 * ~~Cache the Hub resolution stuff~~
 * ~~Consider making authorization service optional~~
   You can create your own queryable hubs!
-* Consider moving binders into core project (not SignalR specific?)
+* ~~Consider moving binders into core project (not SignalR specific?)~~
+  Move when needed, internal for now anyway.
 * ~~Support type argument for hub client~~
 * Figure out why the websocket is closing unexpectedly in the sample
-* Add a nice ASP.NET COre style API (builder etc)
+* ~~Add a nice ASP.NET COre style API (builder etc)~~
+  No longer required, devs just need to inherit from QueryableHub<>
 * ~~Consider making the endpoint names configurable~~
   You can create your own queryable hubs!
 * Allow for generators to be preconfigured (e.g. range)
@@ -32,6 +34,8 @@
 * Add a whitelist of allowed types/methods
 * Support Task<IAsyncEnumerable<T>>
 * Do I support async IAsyncEnumerable<> HubMethod()s?
+* Less IEnumerables everywhere for less allocs
+* Pretty printer for expression errors
 
 
 ## Limitations
