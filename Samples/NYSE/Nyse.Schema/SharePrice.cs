@@ -1,11 +1,11 @@
 ﻿namespace Nyse.Schema
 {
-    public class StockPrice
+    public class SharePrice
     {
         public string Symbol { get; }
-        public double Price { get; }
+        public decimal Price { get; }
 
-        public StockPrice(string symbol, double price) =>
+        public SharePrice(string symbol, decimal price) =>
             (Symbol, Price) = (symbol, price);
     }
 }

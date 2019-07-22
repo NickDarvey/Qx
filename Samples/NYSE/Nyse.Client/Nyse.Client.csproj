@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Source\Qx.Client.SignalR\Qx.Client.SignalR.csproj" />
     <ProjectReference Include="..\Nyse.Schema\Nyse.Schema.csproj" />
   </ItemGroup>
 

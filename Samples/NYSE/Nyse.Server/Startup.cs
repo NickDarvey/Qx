@@ -12,11 +12,11 @@ namespace Nyse.Server
         public void ConfigureServices(IServiceCollection services)
         {
             services
-                .AddSignalR()
+                .AddSignalR(o => { o.MaximumReceiveMessageSize = 1_258_000; })
                 .AddNewtonsoftJsonProtocol(s => s.PayloadSerializerSettings.TypeNameHandling = Newtonsoft.Json.TypeNameHandling.Objects);
 
-            services.AddSingleton<IStockPriceRepository, SampleStockPriceRepository>();
-            services.AddSingleton<IStockPriceChangeFeed, SampleStockPriceChangeFeed>();
+            services.AddSingleton<ISharesRepository, SampleSharesRepository>();
+            services.AddSingleton<ISharesChangeFeed, SampleSharesChangeFeed>();
         }
             
 
@@ -28,7 +28,8 @@ namespace Nyse.Server
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapHub<StocksHub>("stocks");
+                endpoints.MapHub<StocksHub>("shares");
+                endpoints.MapHub<QueryableStocksHub>("queryable-shares");
             });
         }
     }
