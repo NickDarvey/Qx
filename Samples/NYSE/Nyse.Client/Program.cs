@@ -54,7 +54,7 @@ namespace Nyse.Client
 
             var client = new QxAsyncQueryClient(new SignalRAsyncQueryServiceProvider(connection));
 
-            var results = client.GetEnumerable<SharePrice>("SharePrices")
+            var query = client.GetEnumerable<SharePrice>("SharePrices")
                 .Where(sp => sp.Symbol == "MSFT")
 
                 // Get the market cap
@@ -67,9 +67,9 @@ namespace Nyse.Client
                     .Where(ls => ls.Symbol == mc.Item1)
                     .Select(ls => Tuple.Create(mc.Item1, ls.Name, mc.Item2)));
 
-            await foreach (var element in results)
+            await foreach (var element in query)
             {
-                Console.WriteLine($"{element.Item2} ({element.Item1}): ${element.Item3}");
+                Console.WriteLine($"{element.Item2} ({element.Item1}): {element.Item3.ToString("C")}");
             }
         }
     }
