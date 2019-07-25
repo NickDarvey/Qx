@@ -36,7 +36,10 @@ namespace Qx
         /// </summary>
         private class NormalizingAsyncQueryServiceProvider : IAsyncQueryServiceProvider
         {
-            private static readonly IEnumerable<Func<ExpressionVisitor>> Normalizers = new Func<ExpressionVisitor>[] { () => new ClientCallKnownResourceRewriter() };
+            private static readonly IEnumerable<Func<Expression, Expression>> Normalizers = new Func<Expression, Expression>[]
+            {
+                expr => new ClientCallKnownResourceRewriter().Visit(expr),
+            };
 
             private readonly IAsyncQueryServiceProvider _base;
 
@@ -48,7 +51,7 @@ namespace Qx
             public ValueTask<T> GetAsyncResult<T>(Expression expression, CancellationToken token) =>
                 _base.GetAsyncResult<T>(Normalize(expression), token);
 
-            private Expression Normalize(Expression expression) => Normalizers.Aggregate(expression, (s, x) => x().Visit(s));
+            private Expression Normalize(Expression expression) => Normalizers.Aggregate(expression, (s, x) => x(s));
 
             // TODO: (Optionally, opt-in?) support extensions of the client class, e.g. an extension which offers a strongly-typed Range method
             private class ClientCallKnownResourceRewriter : ExpressionVisitor
