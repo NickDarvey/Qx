@@ -37,6 +37,9 @@
 * Less IEnumerables everywhere for less allocs
 * Pretty printer for expression errors
 * Support anonymous types
+* Support inlining of local work
+* Support other ways people might create known resource invocations,
+  e.g. extensions to a client
 
 
 ## Limitations
