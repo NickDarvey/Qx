@@ -10,11 +10,10 @@ namespace Qx
     {
         public delegate bool Verifier(Expression expression, out IEnumerable<string> errors);
 
-        public static Verifier CreateVerifier(IEnumerable<MethodInfo> knownMethods, IEnumerable<Type> knownTypes, IEnumerable<Type> knownExtendedPrimitiveTypes)
+        public static Verifier CreateVerifier(IEnumerable<MethodInfo> knownMethods, IEnumerable<Type> knownTypes)
         {
-            var isVerifiedExtendedPrimitiveType = CreateExtendedPrimitiveTypeVerifier(knownExtendedPrimitiveTypes);
-            var isVerifiedType = CreateTypeVerifier(knownTypes, isVerifiedExtendedPrimitiveType);
-            var isVerifiedMethod = CreateMethodVerifier(knownMethods, isVerifiedExtendedPrimitiveType);
+            var isVerifiedType = CreateTypeVerifier(knownTypes);
+            var isVerifiedMethod = CreateMethodVerifier(knownMethods, isVerifiedType);
 
             bool Verify(Expression expression, out IEnumerable<string> errors)
             {
@@ -106,7 +105,7 @@ namespace Qx
           .Where(method => _knownOperatorMethodNames.Contains(method.Name))
           .ToList(); // Evaluate once
 
-        public static readonly IEnumerable<Type> DefaultKnownExtendedPrimitiveTypes = new[]
+        public static readonly IEnumerable<Type> DefaultKnownTypes = new[]
         {
             typeof(Guid),
             typeof(Uri),
@@ -115,10 +114,8 @@ namespace Qx
             typeof(Tuple),
         };
 
-        public static readonly IEnumerable<Type> DefaultKnownTypes = Enumerable.Empty<Type>();
-
         public static readonly Verifier Verify = CreateVerifier(
-            knownMethods: DefaultKnownMethods, knownTypes: DefaultKnownTypes, knownExtendedPrimitiveTypes: DefaultKnownExtendedPrimitiveTypes);
+            knownMethods: DefaultKnownMethods, knownTypes: DefaultKnownTypes);
 
         private class Impl : ExpressionVisitor
         {
@@ -190,31 +187,25 @@ namespace Qx
         }
 
         private delegate bool MethodVerifier(MethodInfo method);
-        private static MethodVerifier CreateMethodVerifier(IEnumerable<MethodInfo> knownMethods, ExtendedPrimitiveTypeVerifier isVerifiedExtendedPrimitiveType) =>
+        private static MethodVerifier CreateMethodVerifier(IEnumerable<MethodInfo> knownMethods, TypeVerifier isVerifiedType) =>
             method => method.DeclaringType.IsEnum ? true
                     : method.DeclaringType.IsPrimitive ? true
-                    : isVerifiedExtendedPrimitiveType(method.DeclaringType) ? true
-                    : knownMethods.Contains(method.IsGenericMethod ? method.GetGenericMethodDefinition() : method) ? true
+                    : isVerifiedType(method.DeclaringType) ? true
+                    : knownMethods.Contains(method) ? true
+                    : method.IsGenericMethod && knownMethods.Contains(method.GetGenericMethodDefinition()) ? true
                     : false;
 
-
-        private delegate bool ExtendedPrimitiveTypeVerifier(Type type);
-        private static ExtendedPrimitiveTypeVerifier CreateExtendedPrimitiveTypeVerifier(IEnumerable<Type> knownExtendedPrimitiveTypes) =>
-            type => knownExtendedPrimitiveTypes.Contains(type.IsGenericType ? type.GetGenericTypeDefinition() : type) ? true
-                  : false;
-
         private delegate bool TypeVerifier(Type type);
-        private static TypeVerifier CreateTypeVerifier(IEnumerable<Type> knownTypes, ExtendedPrimitiveTypeVerifier isVerifiedExtendedPrimitiveType)
+        private static TypeVerifier CreateTypeVerifier(IEnumerable<Type> knownTypes)
         {
             bool Verify(Type type) =>
-                knownTypes.Contains(type) ? true
+                type.IsEnum ? true
               : type.IsPrimitive ? true
-              : isVerifiedExtendedPrimitiveType(type) ? true
-              : type.IsEnum ? true // ?
-              : type.IsArray && Verify(type.GetElementType()) ? true
               : knownTypes.Contains(type) ? true
-              : type.IsGenericType && type.GetGenericArguments().All(Verify) ? true
-              : knownTypes.Contains(type.IsGenericType ? type.GetGenericTypeDefinition() : type);
+              : type.IsGenericType
+                && knownTypes.Contains(type.GetGenericTypeDefinition())
+                && type.GetGenericArguments().All(Verify) ? true
+              : false;
 
             return Verify;
         }
