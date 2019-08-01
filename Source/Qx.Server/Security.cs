@@ -112,11 +112,12 @@ namespace Qx
             typeof(Uri),
             typeof(TimeSpan),
             typeof(DateTimeOffset),
+            typeof(Tuple),
         };
 
         public static readonly IEnumerable<Type> DefaultKnownTypes = Enumerable.Empty<Type>();
 
-        public static readonly Verifier DefaultVerifier = CreateVerifier(
+        public static readonly Verifier Verify = CreateVerifier(
             knownMethods: DefaultKnownMethods, knownTypes: DefaultKnownTypes, knownExtendedPrimitiveTypes: DefaultKnownExtendedPrimitiveTypes);
 
         private class Impl : ExpressionVisitor
@@ -185,6 +186,7 @@ namespace Qx
                 Errors.Add($"Extensions are not allowed");
                 return base.VisitExtension(node);
             }
+
         }
 
         private delegate bool MethodVerifier(MethodInfo method);
@@ -205,10 +207,13 @@ namespace Qx
         private static TypeVerifier CreateTypeVerifier(IEnumerable<Type> knownTypes, ExtendedPrimitiveTypeVerifier isVerifiedExtendedPrimitiveType)
         {
             bool Verify(Type type) =>
-                type.IsEnum ? true
-              : isVerifiedExtendedPrimitiveType(type) ? true
+                knownTypes.Contains(type) ? true
               : type.IsPrimitive ? true
+              : isVerifiedExtendedPrimitiveType(type) ? true
+              : type.IsEnum ? true // ?
               : type.IsArray && Verify(type.GetElementType()) ? true
+              : knownTypes.Contains(type) ? true
+              : type.IsGenericType && type.GetGenericArguments().All(Verify) ? true
               : knownTypes.Contains(type.IsGenericType ? type.GetGenericTypeDefinition() : type);
 
             return Verify;

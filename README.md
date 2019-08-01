@@ -40,7 +40,8 @@
 * Support inlining of local work
 * Support other ways people might create known resource invocations,
   e.g. extensions to a client
-
+* Consider whitelisting members in addition to types, maybe even arguments.
+  e.g. Allow Enumerable.Range(*, <= 100);
 
 ## Limitations
 The integration with SignalR is uhh- lacking. If they add new features, they'll need to be added in Qx too.
