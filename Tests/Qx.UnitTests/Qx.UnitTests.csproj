@@ -7,8 +7,6 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.0.1" />
     <PackageReference Include="xunit" Version="2.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
-    <PackageReference Include="System.Interactive.Async" Version="4.0.0-preview.1.build.745" />
-    <PackageReference Include="System.Interactive.Async.Providers" Version="4.0.0-preview.1.build.745" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Source\Qx.Client\Qx.Client.csproj" />
