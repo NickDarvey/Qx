@@ -10,6 +10,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Source\Qx.Client\Qx.Client.csproj" />
-    <ProjectReference Include="..\..\Source\Qx.Server\Qx.csproj" />
+    <ProjectReference Include="..\..\Source\Qx\Qx.csproj" />
   </ItemGroup>
 </Project>

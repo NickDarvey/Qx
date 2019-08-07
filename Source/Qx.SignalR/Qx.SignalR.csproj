@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Qx.Server\Qx.csproj" />
+    <ProjectReference Include="..\Qx\Qx.csproj" />
   </ItemGroup>
 
 </Project>
