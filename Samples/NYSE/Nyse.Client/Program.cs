@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Nyse.Schema;
 using Qx;
+using Qx.SignalR;
 using System;
 using System.Linq;
 using System.Net.Http;
@@ -52,7 +53,7 @@ namespace Nyse.Client
         {
             var connection = await Connect("http://localhost:60591/queryable-shares");
 
-            var client = new QxAsyncQueryClient(new SignalRAsyncQueryServiceProvider(connection));
+            var client = new QxAsyncQueryClient(new DefaultAsyncQueryServiceProvider(connection));
 
             var query = client.GetEnumerable<SharePrice>("SharePrices")
                 .Where(sp => sp.Symbol == "MSFT")

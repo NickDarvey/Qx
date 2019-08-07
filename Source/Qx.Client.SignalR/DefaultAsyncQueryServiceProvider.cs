@@ -5,14 +5,14 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Qx
+namespace Qx.SignalR
 {
-    public class SignalRAsyncQueryServiceProvider : IAsyncQueryServiceProvider
+    public class DefaultAsyncQueryServiceProvider : IAsyncQueryServiceProvider
     {
         private readonly NodeFactory _factory = new NodeFactory(); // Creates ExpressionNodes, a serializable expression tree.
         private readonly HubConnection _connection;
 
-        public SignalRAsyncQueryServiceProvider(HubConnection connection)
+        public DefaultAsyncQueryServiceProvider(HubConnection connection)
         {
             _connection = connection;
         }

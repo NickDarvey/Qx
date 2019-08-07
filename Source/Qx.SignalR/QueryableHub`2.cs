@@ -27,7 +27,7 @@ namespace Qx.SignalR
             // Till https://github.com/aspnet/AspNetCore/issues/11495
             var cancellationToken = Context.ConnectionAborted;
             var authorizer = CreateHubAuthorizer(Context.User, _authorizationService, _authorizationPolicyProvider);
-            var query = await CompileEnumerableQuery(expression, authorizer, _hubMethods.WithInstance(this));
+            var query = await CompileEnumerableQuery(expression.ToExpression(), authorizer, _hubMethods.WithInstance(this));
             return query(cancellationToken);
         }
 
@@ -35,7 +35,7 @@ namespace Qx.SignalR
         public async Task<object> GetResult(ExpressionNode expression)
         {
             var authorizer = CreateHubAuthorizer(Context.User, _authorizationService, _authorizationPolicyProvider);
-            var query = await CompileExecutableQuery(expression, authorizer, _hubMethods.WithInstance(this));
+            var query = await CompileExecutableQuery(expression.ToExpression(), authorizer, _hubMethods.WithInstance(this));
             return await query(Context.ConnectionAborted);
         }
     }

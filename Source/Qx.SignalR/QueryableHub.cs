@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using Serialize.Linq.Nodes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,26 +26,23 @@ namespace Qx.SignalR
         }
 
         public static Task<Func<CancellationToken, IAsyncQueryable<object>>> CompileEnumerableQuery<TSourceDescription>(
-            ExpressionNode query,
+            Expression query,
             Authorizer<TSourceDescription> authorizer,
             IReadOnlyDictionary<string, TSourceDescription> bindings) where TSourceDescription : IQueryableSourceDescription =>
             CompileQuery<TSourceDescription, IAsyncQueryable<object>>(query, authorizer, bindings, RewriteManyResultsType);
 
         public static Task<Func<CancellationToken, Task<object>>> CompileExecutableQuery<TSourceDescription>(
-            ExpressionNode query,
+            Expression query,
             Authorizer<TSourceDescription> authorizer,
             IReadOnlyDictionary<string, TSourceDescription> bindings) where TSourceDescription : IQueryableSourceDescription =>
             CompileQuery<TSourceDescription, Task<object>>(query, authorizer, bindings, RewriteSingleResultsType);
 
         internal static async Task<Func<CancellationToken, TResult>> CompileQuery<TSourceDescription, TResult>(
-            ExpressionNode query,
+            Expression expression,
             Authorizer<TSourceDescription> authorizer,
             IReadOnlyDictionary<string, TSourceDescription> bindings,
             Func<Expression, Expression> boxingRewriter) where TSourceDescription : IQueryableSourceDescription
         {
-
-            var expression = query.ToExpression();
-
             var unboundParameters = Scanners.FindUnboundParameters(expression);
 
             var isMethodsBound = TryBindMethods(unboundParameters, bindings, out var methodBindings, out var methodBindingErrors);

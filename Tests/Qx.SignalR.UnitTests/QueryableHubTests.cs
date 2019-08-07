@@ -1,5 +1,4 @@
-﻿using Serialize.Linq.Factories;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -23,7 +22,7 @@ namespace Qx.SignalR.UnitTests
                 Expression.Constant(42));
 
             var invoke = await CompileQuery<QueryableSourceDescription, int>(
-                query: new NodeFactory().Create(query),
+                expression: query,
                 authorizer: _ => Task.FromResult(true),
                 bindings: new Dictionary<string, QueryableSourceDescription> { { "Echo", new QueryableSourceDescription(echo.Target, echo.Method) } },
                 boxingRewriter: expr => expr);
