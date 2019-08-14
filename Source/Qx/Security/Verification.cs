@@ -18,11 +18,6 @@ namespace Qx.Security
 
     public static class Verification
     {
-        /// <summary>
-        /// A default implementation of security verification of expression trees.
-        /// </summary>
-        public static readonly Verifier Verify = AllowedFeaturesVerification.Verify.And(AllowedMembersVerification.Verify);
-
         public static Verifier And(this Verifier left, Verifier right)
         {
             bool Verify(Expression expression, out IEnumerable<string> errors)

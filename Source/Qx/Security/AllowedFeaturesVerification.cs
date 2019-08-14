@@ -29,8 +29,6 @@ namespace Qx.Security
         public static Verifier Create(ExpressionFeatures features) =>
             Verification.CreateVerifier(new AllowedFeaturesScanner(features).Scan);
 
-        public static readonly Verifier Verify = Create(ExpressionFeatures.BasicExpressions);
-
         // Based on https://github.com/RxDave/Qactive/blob/6cd5a058082562128d51c50e3ac8bd393ea6015e/Source/Qactive/SecurityExpressionVisitor.cs#L7
         private class AllowedFeaturesScanner : ExpressionVisitor
         {

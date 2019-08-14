@@ -21,17 +21,6 @@ namespace Qx.Security
         public static Verifier Create(IEnumerable<MemberVerifier> allowedMemberVerifiers) =>
             Verification.CreateVerifier(new AllowedMembersScanner(allowedMemberVerifiers.ToArray()).Scan);
 
-        /// <summary>
-        /// A default implementation of an <see cref="AllowedMembersVerification"/> <see cref="Verifier"/>.
-        /// </summary>
-        // TOTHINK: Should we force users to define these?
-        public static readonly Verifier Verify = Create(CreateDeclaredMembersVerifier(
-            DefaultPrimitiveTypes,
-            DefaultPrimitiveMembers,
-            DefaultExtendedPrimitiveTypes,
-            DefaultExtendedPrimitiveMembers,
-            DefaultOperatorMembers));
-        
         private class AllowedMembersScanner : ExpressionVisitor
         {
             private readonly MemberVerifier[] _verifiers;

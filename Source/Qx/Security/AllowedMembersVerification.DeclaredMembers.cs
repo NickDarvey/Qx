@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -7,7 +8,17 @@ namespace Qx.Security
 {
     public static partial class AllowedMembersVerification
     {
-        // Based on https://github.com/microsoft/referencesource/blob/e0bf122d0e52a42688b92bb4be2cfd66ca3c2f07/System.Data.Linq/SqlClient/Common/TypeSystem.cs#L232
+        /// <summary>
+        /// Compares a MemberInfo by its module (assembly), metadata token and its type arguments.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="MemberInfo"/> overrides == for value comparison, but not
+        /// <see cref="MemberInfo.Equals(object)"/> or <see cref="MemberInfo.GetHashCode"/>
+        /// (see https://github.com/dotnet/corefx/blob/cd666bb681149f76b6e716057928d299c8f47272/src/Common/src/CoreLib/System/Reflection/MemberInfo.cs#L10)
+        /// but we need this for use in a <see cref="HashSet{T}'"/>.
+        /// Based on https://github.com/microsoft/referencesource/blob/e0bf122d0e52a42688b92bb4be2cfd66ca3c2f07/System.Data.Linq/SqlClient/Common/TypeSystem.cs#L232,
+        /// and https://stackoverflow.com/q/13615927.
+        /// </remarks>
         private class MemberInfoEqualityComparer : IEqualityComparer<MemberInfo>
         {
             public static IEqualityComparer<MemberInfo> Instance = new MemberInfoEqualityComparer();
@@ -15,13 +26,23 @@ namespace Qx.Security
             private MemberInfoEqualityComparer() { }
 
             public bool Equals(MemberInfo x, MemberInfo y) =>
-                x.Module == y.Module &&
-                x.MetadataToken == y.MetadataToken;
+                x == y ? true
+                : x == null || y == null ? false
+                : x.Module != y.Module || x.MetadataToken != y.MetadataToken ? false
+                // If it's a type then the type args must also match
+                : x is Type tx && y is Type ty && tx.GetGenericArguments().SequenceEqual(ty.GetGenericArguments()) == false ? false
+                // If it's a method or constructor then the type args must also match
+                : x is MethodBase mx && y is MethodBase my && mx.GetGenericArguments().SequenceEqual(my.GetGenericArguments()) == false ? false
+                // If we've got this far, they match
+                : true;
 
             public int GetHashCode(MemberInfo obj) =>
                 obj.Module.GetHashCode() +
                 obj.MetadataToken * 17;
         }
+
+        public static MemberVerifier CreateDeclaredMembersVerifier(params MemberInfo[] members) =>
+            CreateDeclaredMembersVerifier(members.AsEnumerable());
 
         public static MemberVerifier CreateDeclaredMembersVerifier(params IEnumerable<MemberInfo>[] members) =>
             CreateDeclaredMembersVerifier(members.SelectMany(m => m));
@@ -29,7 +50,21 @@ namespace Qx.Security
         public static MemberVerifier CreateDeclaredMembersVerifier(IEnumerable<MemberInfo> members)
         {
             var members_ = new HashSet<MemberInfo>(members, MemberInfoEqualityComparer.Instance);
-            return m => members_.Contains(m);
+
+            bool VerifyType(Type type) =>
+                type.IsGenericType
+                && type.IsGenericTypeDefinition == false // Would this ever be in an expression tree?
+                && members_.Contains(type.GetGenericTypeDefinition())
+                && type.GetGenericArguments().All(t => members_.Contains(t) || VerifyType(t));
+
+            bool VerifyMethod(MethodInfo method) =>
+                method.IsGenericMethod
+                && method.IsGenericMethodDefinition == false // Would this ever be in an expression tree?
+                && members_.Contains(method.GetGenericMethodDefinition());
+
+            return m => members_.Contains(m)
+                     || m is Type type && VerifyType(type)
+                     || m is MethodInfo method && VerifyMethod(method);
         }
 
         private static readonly HashSet<string> _declaredOperatorMethodNames = new HashSet<string>()

@@ -11,39 +11,37 @@ namespace Qx.UnitTests
 {
     public class AllowedMembersVerificationTests
     {
-        ///// <remarks>
-        ///// If only a typeof(List<DateTime>) is allowed then another closing of the generic like List<string> should not be allowed.
-        ///// </remarks>
-        //[Fact]
-        //public void Should_allow_closed_generic_type()
-        //{
-        //    var expr = Expression.Constant(null, typeof(List<string>));
-        //    var verify = CreateVerifier(
-        //        knownMethods: DefaultKnownOperatorMethods,
-        //        knownTypes: new[] { typeof(List<string>) });
+        /// <remarks>
+        /// If only a typeof(List<DateTime>) is allowed then another closing of the generic like List<string> should not be allowed.
+        /// </remarks>
+        [Fact]
+        public void DeclaredMembersVerifier_should_allow_closed_generic_types()
+        {
+            var expr = Expression.Constant(null, typeof(List<string>));
+            var verify = Create(CreateDeclaredMembersVerifier(typeof(List<string>)));
 
-        //    var verified = verify(expr, out var errors);
+            var verified = verify(expr, out var errors);
 
-        //    Assert.True(verified);
-        //    Assert.Null(errors);
-        //}
+            AssertAllowed(verified, errors);
+        }
 
-        ///// <remarks>
-        ///// If typeof(List<>) is allowed and typeof(DateTime) is allowed, then typeof(List<DateTime>) should be allowed.
-        ///// </remarks>
-        //[Fact]
-        //public void Should_allow_known_open_generics_to_be_closed_with_other_known_types()
-        //{
-        //    var expr = Expression.Constant(null, typeof(List<TestKnownType>));
-        //    var verify = CreateVerifier(
-        //        knownMethods: DefaultKnownOperatorMethods,
-        //        knownTypes: new[] { typeof(List<>), typeof(TestKnownType) });
+        /// <remarks>
+        /// If typeof(List<>) is allowed and typeof(DateTime) is allowed, then typeof(List<DateTime>) should be allowed,
+        /// but typeof(List<TimeSpan>) should not be allowed.
+        /// </remarks>
+        [Fact]
+        public void DeclaredMembersVerifier_should_allow_open_generic_types_to_be_closed_with_other_types()
+        {
+            var allowedExpr = Expression.Constant(null, typeof(List<string>));
+            var disallowedExpr = Expression.Constant(null, typeof(List<int>));
+            var verify = Create(CreateDeclaredMembersVerifier(typeof(List<>), typeof(string)));
 
-        //    var verified = verify(expr, out var errors);
+            var allowed = verify(allowedExpr, out var noErrors);
+            var disallowed = verify(disallowedExpr, out var errors);
 
-        //    Assert.True(verified);
-        //    Assert.Null(errors);
-        //}
+            AssertAllowed(allowed, noErrors);
+            AssertDisallowed(disallowed, errors);
+        }
 
         ///// <remarks>
         ///// If only a typeof(List<DateTime>) is allowed then another closing of the generic like List<string> should not be allowed.
