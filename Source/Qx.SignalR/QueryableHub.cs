@@ -43,6 +43,14 @@ namespace Qx.SignalR
             IReadOnlyDictionary<string, TSourceDescription> bindings,
             Func<Expression, Expression> boxingRewriter) where TSourceDescription : IQueryableSourceDescription
         {
+            // from _ in security.Verify(expr)
+            // let unboundParameters = Find(expr)
+            // from methodBindings in BindMethods(unboundParameters, bindings) // lift to Task
+            // let expressionBindings = methodBindings.ToDictionary(...)
+            // from invocationBindings = BindInvocations(expressionBindings)
+            // from query in BindingRewriter(expr, invocationBindings)
+            // let boxedQuery = boxingRewriter(boundQuery)
+
             var unboundParameters = Scanners.FindUnboundParameters(expression);
 
             var isMethodsBound = TryBindMethods(unboundParameters, bindings, out var methodBindings, out var methodBindingErrors);
@@ -63,7 +71,7 @@ namespace Qx.SignalR
             var isInvocationsBound = TryBindInvocations(expressionBindings, syntheticParameters, out var invocationBindings, out var invocationBindingErrors);
             if (isInvocationsBound == false) throw new HubException($"Failed to bind query to hub methods. {string.Join("; ", invocationBindingErrors)}");
 
-            var boundQuery = Rewrite(expression, invocationBindings);
+            var boundQuery = BindingRewriter(expression, invocationBindings);
             var boxedQuery = boxingRewriter(boundQuery);
 
             var invoke = Expression.Lambda<Func<CancellationToken, TResult>>(boxedQuery, syntheticParameters).Compile();

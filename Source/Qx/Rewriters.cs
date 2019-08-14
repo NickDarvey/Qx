@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ExpressionToString;
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -17,7 +18,7 @@ namespace Qx
         /// <param name="expression"></param>
         /// <param name="bindings"></param>
         /// <returns></returns>
-        public static Expression Rewrite(Expression expression, IReadOnlyDictionary<ParameterExpression, InvocationFactory> bindings) =>
+        public static Expression BindingRewriter(Expression expression, IReadOnlyDictionary<ParameterExpression, InvocationFactory> bindings) =>
             new Impl(bindings).Visit(expression);
 
         private class Impl : ExpressionVisitor
