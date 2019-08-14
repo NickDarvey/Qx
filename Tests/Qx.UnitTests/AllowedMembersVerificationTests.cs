@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Reflection;
 using Xunit;
-using static Qx.Security.AllowedMembersVerification;
 using static Qx.Internals.ReflectionExtensions;
+using static Qx.Security.AllowedMembersVerification;
 
 namespace Qx.UnitTests
 {
@@ -17,12 +14,15 @@ namespace Qx.UnitTests
         [Fact]
         public void DeclaredMembersVerifier_should_allow_closed_generic_types()
         {
-            var expr = Expression.Constant(null, typeof(List<string>));
+            var allowedExpr = Expression.Constant(null, typeof(List<string>));
+            var disallowedExpr = Expression.Constant(null, typeof(List<int>));
             var verify = Create(CreateDeclaredMembersVerifier(typeof(List<string>)));
 
-            var verified = verify(expr, out var errors);
+            var allowed = verify(allowedExpr, out var noErrors);
+            var disallowed = verify(disallowedExpr, out var errors);
 
-            AssertAllowed(verified, errors);
+            AssertAllowed(allowed, noErrors);
+            AssertDisallowed(disallowed, errors);
         }
 
         /// <remarks>
@@ -43,39 +43,44 @@ namespace Qx.UnitTests
             AssertDisallowed(disallowed, errors);
         }
 
-        ///// <remarks>
-        ///// If only a typeof(List<DateTime>) is allowed then another closing of the generic like List<string> should not be allowed.
-        ///// </remarks>
-        //[Fact]
-        //public void Should_disallow_different_closings_of_generics()
-        //{
-        //    var expr = Expression.Constant(null, typeof(List<string>));
-        //    var verify = CreateVerifier(
-        //        knownMethods: DefaultKnownOperatorMethods,
-        //        knownTypes: new[] { typeof(List<TestKnownType>) });
+        /// <remarks>
+        /// If only a Class.Method<string> is allowed then another closing of the generic like Class.Method<int> should not be allowed.
+        /// </remarks>
+        [Fact]
+        public void DeclaredMembersVerifier_should_allow_closed_generic_methods()
+        {
+            var allowedMethod = GetMethodInfo(() => TestKnownStaticType.GetTypeNameOf<string>());
+            var disallowedMethod = GetMethodInfo(() => TestKnownStaticType.GetTypeNameOf<int>());
+            var allowedExpr = Expression.Call(allowedMethod);
+            var disallowedExpr = Expression.Call(disallowedMethod);
+            var verify = Create(CreateDeclaredMembersVerifier(allowedMethod));
 
-        //    var verified = verify(expr, out var errors);
+            var allowed = verify(allowedExpr, out var noErrors);
+            var disallowed = verify(disallowedExpr, out var errors);
 
-        //    Assert.False(verified);
-        //    Assert.Single(errors);
-        //}
+            AssertAllowed(allowed, noErrors);
+            AssertDisallowed(disallowed, errors);
+        }
 
-        //[Fact]
-        //public void Should_allow_declaring_type_methods_if_type_is_known()
-        //{
-        //    var expr = Expression.Call(
-        //        Expression.Constant(DateTime.Now),
-        //        GetMethodInfo<DateTime, DateTime>(dt => dt.AddDays(1)),
-        //        Expression.Constant(1d));
-        //    var verify = CreateVerifier(
-        //        knownMethods: DefaultKnownOperatorMethods,
-        //        knownTypes: new[] { typeof(DateTime) });
+        /// <remarks>
+        /// If only a Class.Method<T> is allowed then any closing is allowed.
+        /// </remarks>
+        [Fact]
+        public void DeclaredMembersVerifier_should_allow_open_generic_methods_to_be_closed_with_any_types()
+        {
+            var method = typeof(TestKnownStaticType).GetMethod(nameof(TestKnownStaticType.GetTypeNameOf));
+            var allowedExpr1 = Expression.Call(GetMethodInfo(() => TestKnownStaticType.GetTypeNameOf<string>()));
+            var allowedExpr2 = Expression.Call(GetMethodInfo(() => TestKnownStaticType.GetTypeNameOf<int>()));
+            var verify = Create(CreateDeclaredMembersVerifier(method));
 
-        //    var verified = verify(expr, out var errors);
+            var allowed1 = verify(allowedExpr1, out var errors1);
+            var allowed2 = verify(allowedExpr1, out var errors2);
 
-        //    Assert.True(verified);
-        //    Assert.Null(errors);
-        //}
+            AssertAllowed(allowed1, errors1);
+            AssertAllowed(allowed2, errors2);
+        }
+
+
         [Fact]
         public void Should_disallow_constants_if_type_is_unknown()
         {
@@ -198,6 +203,7 @@ namespace Qx.UnitTests
         private static class TestKnownStaticType
         {
             public static int Get42() => 42;
+            public static string GetTypeNameOf<T>() => typeof(T).Name;
         }
 
         private class TestKnownType
