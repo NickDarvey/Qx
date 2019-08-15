@@ -12,7 +12,7 @@
 * ~~Support cancellation of many results~~
   * ~~Why don't I get a cancellation token?~~
     Because of an ASP.NET Core bug.
-* Handle authorization (and other SignalR-supported stuff?)
+* ~~Handle authorization (and other SignalR-supported stuff?)~~
   * Bearer tokens https://docs.microsoft.com/en-us/aspnet/core/signalr/authn-and-authz?view=aspnetcore-2.2#bearer-token-authentication
     Some fun stuff with JwtBearerEvents.OnMessageReceived
   * AuthorizeAttribute https://docs.microsoft.com/en-us/aspnet/core/signalr/authn-and-authz?view=aspnetcore-3.0#authorize-users-to-access-hubs-and-hub-methods
@@ -23,28 +23,30 @@
 * ~~Consider moving binders into core project (not SignalR specific?)~~
   Move when needed, internal for now anyway.
 * ~~Support type argument for hub client~~
-* Figure out why the websocket is closing unexpectedly in the sample
 * ~~Add a nice ASP.NET COre style API (builder etc)~~
   ~~No longer required, devs just need to inherit from QueryableHub<>~~
   Added a 'AddQx' builder function.
 * ~~Consider making the endpoint names configurable~~
   You can create your own queryable hubs!
-* Allow for generators to be preconfigured (e.g. range)
-* Add JsonConverter or some such to support System.Text.Json
-* Probably replace serializelinq library
-* Add a whitelist of allowed types/methods
-* Support Task<IAsyncEnumerable<T>>
-* Do I support async IAsyncEnumerable<> HubMethod()s?
-* Less IEnumerables everywhere for less allocs
+* ~~Allow for generators to be preconfigured (e.g. range)~~
+* ~~Add a whitelist of allowed types/methods~~
 * ~~Pretty printer for expression errors~~
-* Support anonymous types
-* Support inlining of local work
-* Support other ways people might create known resource invocations,
-  e.g. extensions to a client
-* Consider whitelisting members in addition to types, maybe even arguments.
-  e.g. Allow Enumerable.Range(*, <= 100);
 * ~~See if there's a way to do away with the injection of IAuthorizationService etc~~
   Done via IQxService which gets hooked up to the DI system.
+* Enable nullable reference types and clean up
+* Poke around with introducing a lightweight Either<,> and clean up the CompileQuery() method
+* Support inlining of local work
+* Support anonymous types
+* Support other ways people might create known resource invocations,
+  e.g. extensions to a client
+* Add JsonConverter or some such to support System.Text.Json
+* Figure out why the websocket is closing unexpectedly in the sample
+* Probably replace serializelinq library
+* Do I support async IAsyncEnumerable<> HubMethod()s?
+* Support Task<IAsyncEnumerable<T>>
+* Consider whitelisting members in addition to types, maybe even arguments.
+  e.g. Allow Enumerable.Range(*, <= 100);
+* Less IEnumerables everywhere for less allocs
 * Imagine a Roslyn analyzer which could look at some Qx metadata endpoint and identify what is and isn't allowed.
   (e.g. which members are whitelisted)
 
