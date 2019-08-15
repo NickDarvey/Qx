@@ -4,14 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
-using static Qx.SignalR.QueryableHub;
+using static Qx.SignalR.Queries;
 
 namespace Qx.SignalR
 {
     /// <summary>
     /// A collection of functions for using a <see cref="Hub"/> as a queryable source.
     /// </summary>
-    public static class HubSources
+    public static class Hubs
     {
         /// <summary>
         /// Finds methods which return <see cref="IAsyncQueryable{T}"/> on a <see cref="Hub"/>.

@@ -16,7 +16,7 @@ namespace Qx.SignalR
     /// <summary>
     /// A collection of functions for creating a queryable hub.
     /// </summary>
-    public static class QueryableHub
+    public static class Queries
     {
         public delegate Task<bool> Authorizer<TMethodDescription>(IEnumerable<TMethodDescription> bindings) where TMethodDescription : IQueryableSourceDescription;
 
@@ -27,18 +27,18 @@ namespace Qx.SignalR
         }
 
         public static Task<Func<CancellationToken, IAsyncQueryable<object>>> CompileEnumerableQuery<TSourceDescription>(
-            Expression query,
+            Expression expression,
             Verifier verify,
             Authorizer<TSourceDescription> authorize,
             IReadOnlyDictionary<string, TSourceDescription> bindings) where TSourceDescription : IQueryableSourceDescription =>
-            CompileQuery<TSourceDescription, IAsyncQueryable<object>>(query, verify, authorize, bindings, RewriteManyResultsType);
+            CompileQuery<TSourceDescription, IAsyncQueryable<object>>(expression, verify, authorize, bindings, RewriteManyResultsType);
 
         public static Task<Func<CancellationToken, Task<object>>> CompileExecutableQuery<TSourceDescription>(
-            Expression query,
+            Expression expression,
             Verifier verify,
             Authorizer<TSourceDescription> authorize,
             IReadOnlyDictionary<string, TSourceDescription> bindings) where TSourceDescription : IQueryableSourceDescription =>
-            CompileQuery<TSourceDescription, Task<object>>(query, verify, authorize, bindings, RewriteSingleResultsType);
+            CompileQuery<TSourceDescription, Task<object>>(expression, verify, authorize, bindings, RewriteSingleResultsType);
 
         internal static async Task<Func<CancellationToken, TResult>> CompileQuery<TSourceDescription, TResult>(
             Expression expression,

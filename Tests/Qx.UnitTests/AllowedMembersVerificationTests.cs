@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using Xunit;
 using static Qx.Internals.ReflectionExtensions;
-using static Qx.Security.AllowedFeaturesVerification;
-using static Qx.Security.AllowedMembersVerification;
+using static Qx.Security.AllowedFeatures;
+using static Qx.Security.AllowedMembers;
 
 namespace Qx.UnitTests
 {
@@ -173,7 +173,7 @@ namespace Qx.UnitTests
         public void DefaultPrimitiveTypes_should_allow_string_constants()
         {
             var expr = Expression.Constant("woo");
-            var verify = Create(CreateDeclaredMembersVerifier(DefaultPrimitiveTypes));
+            var verify = Create(CreateDeclaredMembersVerifier(PrimitiveTypes));
 
             var verified = verify(expr, out var errors);
 
@@ -184,7 +184,7 @@ namespace Qx.UnitTests
         public void DefaultPrimitiveMembers_should_allow_string_methods()
         {
             var expr = Expression.NotEqual(Expression.Constant("woo"), Expression.Constant("hoo"));
-            var verify = Create(CreateDeclaredMembersVerifier(DefaultPrimitiveTypes, DefaultPrimitiveMembers));
+            var verify = Create(CreateDeclaredMembersVerifier(PrimitiveTypes, PrimitiveMembers));
 
             var verified = verify(expr, out var errors);
 
@@ -195,7 +195,7 @@ namespace Qx.UnitTests
         public void DefaultPrimitiveTypes_should_disallow_string_methods()
         {
             var expr = Expression.NotEqual(Expression.Constant("woo"), Expression.Constant("hoo"));
-            var verify = Create(CreateDeclaredMembersVerifier(DefaultPrimitiveMembers));
+            var verify = Create(CreateDeclaredMembersVerifier(PrimitiveMembers));
 
             var verified = verify(expr, out var errors);
 

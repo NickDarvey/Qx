@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using static Qx.SignalR.QueryableHub;
+using static Qx.SignalR.Queries;
 
 namespace Qx.SignalR.UnitTests
 {

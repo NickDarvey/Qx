@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 
 namespace Qx.Security
 {
-    public static class AllowedFeaturesVerification
+    public static class AllowedFeatures
     {
         [Flags]
         public enum ExpressionFeatures

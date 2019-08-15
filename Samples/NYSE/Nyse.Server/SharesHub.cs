@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using Nyse.Schema;
 using Nyse.Server.ChangeFeeds;
 using Nyse.Server.Repositories;
@@ -15,9 +14,7 @@ namespace Nyse.Server
 
         public StocksHub(
             ISharesRepository sharesRepository,
-            ISharesChangeFeed sharesChangeFeed,
-            IAuthorizationService authorizationService,
-            IAuthorizationPolicyProvider authorizationPolicyProvider)
+            ISharesChangeFeed sharesChangeFeed)
 
         {
             _sharesRepository = sharesRepository;

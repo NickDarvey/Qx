@@ -1,38 +1,28 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using Qx.Security;
 using Serialize.Linq.Nodes;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using static Qx.SignalR.HubSources;
-using static Qx.SignalR.QueryableHub;
+using static Qx.SignalR.Hubs;
+using static Qx.SignalR.Queries;
 
 namespace Qx.SignalR
 {
     public abstract class QueryableHub<THub> : Hub
     {
         private static readonly IReadOnlyDictionary<string, HubMethodDescription> _hubMethods = FindHubMethodDescriptions<THub>();
-        private readonly Verifier _verifier;
-        private readonly Func<HubCallerContext, Authorizer<HubQueryableSourceDescription>> _createAuthorizer;
+        private readonly IQxService _service;
 
-        public QueryableHub(
-            Verifier verifier,
-            Func<HubCallerContext, Authorizer<HubQueryableSourceDescription>> createAuthorizer)
-        {
-            _verifier = verifier;
-            _createAuthorizer = createAuthorizer;
-        }
+        public QueryableHub(IQxService service) => _service = service;
 
         [HubMethodName("qx`n")]
         public async Task<IAsyncEnumerable<object>> GetEnumerable(ExpressionNode expression)
         {
             // Till https://github.com/aspnet/AspNetCore/issues/11495
             var cancellationToken = Context.ConnectionAborted;
-            var authorizer = _createAuthorizer(Context);
             var query = await CompileEnumerableQuery(
-                query: expression.ToExpression(),
-                verify: _verifier,
-                authorize: _createAuthorizer(Context),
+                expression: expression.ToExpression(),
+                verify: _service.GetVerifier(),
+                authorize: _service.GetAuthorizer(Context),
                 bindings: _hubMethods.WithInstance(this));
             return query(cancellationToken);
         }
@@ -41,9 +31,9 @@ namespace Qx.SignalR
         public async Task<object> GetResult(ExpressionNode expression)
         {
             var query = await CompileExecutableQuery(
-                query: expression.ToExpression(),
-                verify: _verifier,
-                authorize: _createAuthorizer(Context),
+                expression: expression.ToExpression(),
+                verify: _service.GetVerifier(),
+                authorize: _service.GetAuthorizer(Context),
                 bindings: _hubMethods.WithInstance(this));
             return await query(Context.ConnectionAborted);
         }

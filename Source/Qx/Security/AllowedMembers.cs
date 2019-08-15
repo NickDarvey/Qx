@@ -11,7 +11,7 @@ namespace Qx.Security
     /// Verifies <see cref="MemberInfo"/>s of an expression against <see cref="MemberVerifier"/>s.
     /// If any member verifiers return true, the member is allowed.
     /// </summary>
-    public static partial class AllowedMembersVerification
+    public static partial class AllowedMembers
     {
         public delegate bool MemberVerifier(MemberInfo member);
 

@@ -1,11 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.SignalR;
 using Nyse.Schema;
 using Nyse.Server.ChangeFeeds;
 using Nyse.Server.Repositories;
 using Qx.SignalR;
 using System.Linq;
-using static Nyse.Server.Security;
-using static Qx.SignalR.HubSources;
 
 namespace Nyse.Server
 {
@@ -17,9 +15,7 @@ namespace Nyse.Server
         public QueryableStocksHub(
             ISharesRepository sharesRepository,
             ISharesChangeFeed sharesChangeFeed,
-            IAuthorizationService authorizationService,
-            IAuthorizationPolicyProvider authorizationPolicyProvider)
-            : base(verifier: Verify, createAuthorizer: ctx => CreateHubAuthorizer(ctx.User, authorizationService, authorizationPolicyProvider))
+            IQxService qxService) : base(qxService)
         {
             _sharesRepository = sharesRepository;
             _sharesChangeFeed = sharesChangeFeed;

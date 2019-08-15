@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Nyse.Server.ChangeFeeds;
 using Nyse.Server.Repositories;
+using Qx.SignalR;
+using System.Linq;
 
 namespace Nyse.Server
 {
@@ -13,12 +15,16 @@ namespace Nyse.Server
         {
             services
                 .AddSignalR(o => { o.MaximumReceiveMessageSize = 1_258_000; })
+                // Allow anything in our Nyse.Schema library
+                .AddQx(o => o.WithAllowedMembers(from types in typeof(Schema.SharePrice).Assembly.GetTypes()
+                                                 from members in types.GetMembers()
+                                                 select members))
                 .AddNewtonsoftJsonProtocol(s => s.PayloadSerializerSettings.TypeNameHandling = Newtonsoft.Json.TypeNameHandling.Objects);
 
             services.AddSingleton<ISharesRepository, SampleSharesRepository>();
             services.AddSingleton<ISharesChangeFeed, SampleSharesChangeFeed>();
         }
-            
+
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {

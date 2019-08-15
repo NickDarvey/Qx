@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace Qx.Security
 {
-    public static partial class AllowedMembersVerification
+    public static partial class AllowedMembers
     {
         /// <summary>
         /// Compares a MemberInfo by its module (assembly), metadata token and its type arguments.
@@ -128,7 +128,7 @@ namespace Qx.Security
             nameof(AsyncEnumerable.Zip),
         };
 
-        public static readonly IEnumerable<MethodInfo> DefaultOperatorMembers =
+        public static readonly IEnumerable<MethodInfo> OperatorMembers =
             new[] { typeof(AsyncEnumerable), typeof(AsyncEnumerableEx), typeof(AsyncQueryable), typeof(AsyncQueryableEx) }
             .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static))
             .Where(method => _declaredOperatorMethodNames.Contains(method.Name));
@@ -152,7 +152,7 @@ namespace Qx.Security
         /// </summary>
         // TOTHINK: Consider not exposing this and forcing it upon users,
         // it's convenient but will be unchangeable. I'm not sure if I want it in the codebase.
-        public static readonly IEnumerable<Type> DefaultPrimitiveTypes =
+        public static readonly IEnumerable<Type> PrimitiveTypes =
             new[]
             {
                 typeof(string),
@@ -188,8 +188,8 @@ namespace Qx.Security
         /// <see cref="double"/>, and
         /// <see cref="float"/>.
         /// </summary>
-        public static readonly IEnumerable<MemberInfo> DefaultPrimitiveMembers =
-            DefaultPrimitiveTypes.SelectMany(t => t.GetMembers());
+        public static readonly IEnumerable<MemberInfo> PrimitiveMembers =
+            PrimitiveTypes.SelectMany(t => t.GetMembers());
 
         /// <summary>
         /// Extended primitive types are:
@@ -201,7 +201,7 @@ namespace Qx.Security
         /// </summary>
         // TOTHINK: Consider not exposing this and forcing it upon users,
         // it's convenient but will be unchangeable. I'm not sure if I want it in the codebase.
-        public static readonly IEnumerable<Type> DefaultExtendedPrimitiveTypes =
+        public static readonly IEnumerable<Type> ExtendedPrimitiveTypes =
             new[]
             {
                 typeof(Uri),
@@ -219,10 +219,10 @@ namespace Qx.Security
         /// <see cref="DateTime"/>,
         /// <see cref="DateTimeOffset"/>, and
         /// <see cref="TimeSpan"/>.
-        public static readonly IEnumerable<MemberInfo> DefaultExtendedPrimitiveMembers =
-            DefaultExtendedPrimitiveTypes.SelectMany(t => t.GetMembers());
+        public static readonly IEnumerable<MemberInfo> ExtendedPrimitiveMembers =
+            ExtendedPrimitiveTypes.SelectMany(t => t.GetMembers());
 
-        public static readonly IEnumerable<Type> DefaultTupleTypes =
+        public static readonly IEnumerable<Type> TupleTypes =
             new[]
             {
                 typeof(ValueTuple),
@@ -236,7 +236,7 @@ namespace Qx.Security
                 typeof(ValueTuple<,,,,,,,>),
             };
 
-        public static readonly IEnumerable<MemberInfo> DefaultTupleMembers =
-            DefaultTupleTypes.SelectMany(t => t.GetMembers());
+        public static readonly IEnumerable<MemberInfo> TupleMembers =
+            TupleTypes.SelectMany(t => t.GetMembers());
     }
 }

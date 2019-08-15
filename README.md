@@ -25,7 +25,8 @@
 * ~~Support type argument for hub client~~
 * Figure out why the websocket is closing unexpectedly in the sample
 * ~~Add a nice ASP.NET COre style API (builder etc)~~
-  No longer required, devs just need to inherit from QueryableHub<>
+  ~~No longer required, devs just need to inherit from QueryableHub<>~~
+  Added a 'AddQx' builder function.
 * ~~Consider making the endpoint names configurable~~
   You can create your own queryable hubs!
 * Allow for generators to be preconfigured (e.g. range)
@@ -35,14 +36,15 @@
 * Support Task<IAsyncEnumerable<T>>
 * Do I support async IAsyncEnumerable<> HubMethod()s?
 * Less IEnumerables everywhere for less allocs
-* Pretty printer for expression errors
+* ~~Pretty printer for expression errors~~
 * Support anonymous types
 * Support inlining of local work
 * Support other ways people might create known resource invocations,
   e.g. extensions to a client
 * Consider whitelisting members in addition to types, maybe even arguments.
   e.g. Allow Enumerable.Range(*, <= 100);
-* See if there's a way to do away with the injection of IAuthorizationService etc
+* ~~See if there's a way to do away with the injection of IAuthorizationService etc~~
+  Done via IQxService which gets hooked up to the DI system.
 * Imagine a Roslyn analyzer which could look at some Qx metadata endpoint and identify what is and isn't allowed.
   (e.g. which members are whitelisted)
 
