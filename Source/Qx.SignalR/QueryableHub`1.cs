@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
+using Qx.Security;
 using Serialize.Linq.Nodes;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using static Qx.SignalR.HubSources;
@@ -11,14 +12,15 @@ namespace Qx.SignalR
     public abstract class QueryableHub<THub> : Hub
     {
         private static readonly IReadOnlyDictionary<string, HubMethodDescription> _hubMethods = FindHubMethodDescriptions<THub>();
+        private readonly Verifier _verifier;
+        private readonly Func<HubCallerContext, Authorizer<HubQueryableSourceDescription>> _createAuthorizer;
 
-        private readonly IAuthorizationService _authorizationService;
-        private readonly IAuthorizationPolicyProvider _authorizationPolicyProvider;
-
-        public QueryableHub(IAuthorizationService authorizationService, IAuthorizationPolicyProvider authorizationPolicyProvider)
+        public QueryableHub(
+            Verifier verifier,
+            Func<HubCallerContext, Authorizer<HubQueryableSourceDescription>> createAuthorizer)
         {
-            _authorizationService = authorizationService;
-            _authorizationPolicyProvider = authorizationPolicyProvider;
+            _verifier = verifier;
+            _createAuthorizer = createAuthorizer;
         }
 
         [HubMethodName("qx`n")]
@@ -26,16 +28,23 @@ namespace Qx.SignalR
         {
             // Till https://github.com/aspnet/AspNetCore/issues/11495
             var cancellationToken = Context.ConnectionAborted;
-            var authorizer = CreateHubAuthorizer(Context.User, _authorizationService, _authorizationPolicyProvider);
-            var query = await CompileEnumerableQuery(expression.ToExpression(), authorizer, _hubMethods.WithInstance(this));
+            var authorizer = _createAuthorizer(Context);
+            var query = await CompileEnumerableQuery(
+                query: expression.ToExpression(),
+                verify: _verifier,
+                authorize: _createAuthorizer(Context),
+                bindings: _hubMethods.WithInstance(this));
             return query(cancellationToken);
         }
 
         [HubMethodName("qx`1")]
         public async Task<object> GetResult(ExpressionNode expression)
         {
-            var authorizer = CreateHubAuthorizer(Context.User, _authorizationService, _authorizationPolicyProvider);
-            var query = await CompileExecutableQuery(expression.ToExpression(), authorizer, _hubMethods.WithInstance(this));
+            var query = await CompileExecutableQuery(
+                query: expression.ToExpression(),
+                verify: _verifier,
+                authorize: _createAuthorizer(Context),
+                bindings: _hubMethods.WithInstance(this));
             return await query(Context.ConnectionAborted);
         }
     }

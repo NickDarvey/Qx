@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using Xunit;
 using static Qx.Internals.ReflectionExtensions;
+using static Qx.Security.AllowedFeaturesVerification;
 using static Qx.Security.AllowedMembersVerification;
 
 namespace Qx.UnitTests
@@ -68,10 +70,10 @@ namespace Qx.UnitTests
         [Fact]
         public void DeclaredMembersVerifier_should_allow_open_generic_methods_to_be_closed_with_any_types()
         {
-            var method = typeof(TestKnownStaticType).GetMethod(nameof(TestKnownStaticType.GetTypeNameOf));
+            var genericMethod = typeof(TestKnownStaticType).GetMethod(nameof(TestKnownStaticType.GetTypeNameOf));
             var allowedExpr1 = Expression.Call(GetMethodInfo(() => TestKnownStaticType.GetTypeNameOf<string>()));
             var allowedExpr2 = Expression.Call(GetMethodInfo(() => TestKnownStaticType.GetTypeNameOf<int>()));
-            var verify = Create(CreateDeclaredMembersVerifier(method));
+            var verify = Create(CreateDeclaredMembersVerifier(genericMethod));
 
             var allowed1 = verify(allowedExpr1, out var errors1);
             var allowed2 = verify(allowedExpr1, out var errors2);
@@ -213,7 +215,7 @@ namespace Qx.UnitTests
 
         private static void AssertAllowed(bool verified, IEnumerable<string> errors)
         {
-            Assert.True(verified);
+            Assert.True(verified, string.Join(Environment.NewLine, errors));
             Assert.Null(errors);
         }
 

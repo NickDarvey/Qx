@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Qx.Security;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,19 +28,22 @@ namespace Qx.SignalR
 
         public static Task<Func<CancellationToken, IAsyncQueryable<object>>> CompileEnumerableQuery<TSourceDescription>(
             Expression query,
-            Authorizer<TSourceDescription> authorizer,
+            Verifier verify,
+            Authorizer<TSourceDescription> authorize,
             IReadOnlyDictionary<string, TSourceDescription> bindings) where TSourceDescription : IQueryableSourceDescription =>
-            CompileQuery<TSourceDescription, IAsyncQueryable<object>>(query, authorizer, bindings, RewriteManyResultsType);
+            CompileQuery<TSourceDescription, IAsyncQueryable<object>>(query, verify, authorize, bindings, RewriteManyResultsType);
 
         public static Task<Func<CancellationToken, Task<object>>> CompileExecutableQuery<TSourceDescription>(
             Expression query,
-            Authorizer<TSourceDescription> authorizer,
+            Verifier verify,
+            Authorizer<TSourceDescription> authorize,
             IReadOnlyDictionary<string, TSourceDescription> bindings) where TSourceDescription : IQueryableSourceDescription =>
-            CompileQuery<TSourceDescription, Task<object>>(query, authorizer, bindings, RewriteSingleResultsType);
+            CompileQuery<TSourceDescription, Task<object>>(query, verify, authorize, bindings, RewriteSingleResultsType);
 
         internal static async Task<Func<CancellationToken, TResult>> CompileQuery<TSourceDescription, TResult>(
             Expression expression,
-            Authorizer<TSourceDescription> authorizer,
+            Verifier verify,
+            Authorizer<TSourceDescription> authorize,
             IReadOnlyDictionary<string, TSourceDescription> bindings,
             Func<Expression, Expression> boxingRewriter) where TSourceDescription : IQueryableSourceDescription
         {
@@ -51,12 +55,15 @@ namespace Qx.SignalR
             // from query in BindingRewriter(expr, invocationBindings)
             // let boxedQuery = boxingRewriter(boundQuery)
 
+            var isVerified = verify(expression, out var verificationErrors);
+            if (isVerified == false) throw new HubException($"Failed to verify query. {string.Join(Environment.NewLine, verificationErrors)}");
+
             var unboundParameters = Scanners.FindUnboundParameters(expression);
 
             var isMethodsBound = TryBindMethods(unboundParameters, bindings, out var methodBindings, out var methodBindingErrors);
             if (isMethodsBound == false) throw new HubException($"Failed to bind query to hub methods. {string.Join("; ", methodBindingErrors)}");
 
-            var isAuthorized = await authorizer(methodBindings.Values);
+            var isAuthorized = await authorize(methodBindings.Values);
             if (isAuthorized == false) throw new HubException("Some helpful message about authorization");
 
             var expressionBindings = methodBindings.ToDictionary(b => b.Key, b =>

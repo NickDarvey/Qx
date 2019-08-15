@@ -4,7 +4,8 @@ using Nyse.Server.ChangeFeeds;
 using Nyse.Server.Repositories;
 using Qx.SignalR;
 using System.Linq;
-
+using static Nyse.Server.Security;
+using static Qx.SignalR.HubSources;
 
 namespace Nyse.Server
 {
@@ -18,7 +19,7 @@ namespace Nyse.Server
             ISharesChangeFeed sharesChangeFeed,
             IAuthorizationService authorizationService,
             IAuthorizationPolicyProvider authorizationPolicyProvider)
-            : base(authorizationService, authorizationPolicyProvider)
+            : base(verifier: Verify, createAuthorizer: ctx => CreateHubAuthorizer(ctx.User, authorizationService, authorizationPolicyProvider))
         {
             _sharesRepository = sharesRepository;
             _sharesChangeFeed = sharesChangeFeed;

@@ -11,19 +11,19 @@ namespace Qx.Security
         [Flags]
         public enum ExpressionFeatures
         {
-            All = 2 ^ 20 - 1,
+            BasicExpressions    = 0,
+            Assignments         = 1 << 0,
+            Blocks              = 1 << 1,
+            CatchBlocks         = 1 << 2 | TryBlocks,
+            Goto                = 1 << 3,
+            Invocations         = 1 << 4,
+            Loops               = 1 << 5,
+            ArrayInstantiation  = 1 << 6,
+            TryBlocks           = 1 << 7,
+            TypeTests           = 1 << 8,
+            TypeConversions     = 1 << 9,
 
-            BasicExpressions = 0,
-            Assignments = 1,
-            Blocks = 2,
-            CatchBlocks = 4 | TryBlocks,
-            Goto = 16,
-            DelegateInvoke = 32,
-            Loops = 64,
-            ArrayInstantiation = 512,
-            TryBlocks = 1024,
-            TypeTests = 2048,
-            ExplicitConversions = 4096,
+            All                 = ~(-1 << 10)
         }
 
         public static Verifier Create(ExpressionFeatures features) =>
@@ -105,7 +105,7 @@ namespace Qx.Security
 
             protected override Expression VisitInvocation(InvocationExpression node)
             {
-                Check(ExpressionFeatures.DelegateInvoke, node);
+                Check(ExpressionFeatures.Invocations, node);
                 return base.VisitInvocation(node);
             }
 
@@ -144,12 +144,13 @@ namespace Qx.Security
                 switch (node.NodeType)
                 {
                     case ExpressionType.TypeAs:
+                    case ExpressionType.TypeIs:
                         Check(ExpressionFeatures.TypeTests, node);
                         break;
                     case ExpressionType.Convert:
                     case ExpressionType.ConvertChecked:
                         // Conversions can be used as brute force type tests
-                        Check(ExpressionFeatures.TypeTests | ExpressionFeatures.ExplicitConversions, node);
+                        Check(ExpressionFeatures.TypeTests | ExpressionFeatures.TypeConversions, node);
                         break;
                 }
 

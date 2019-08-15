@@ -146,6 +146,7 @@ namespace Qx.Security
         /// <see cref="long"/>,
         /// <see cref="ulong"/>,
         /// <see cref="char"/>,
+        /// <see cref="decimal"/>,
         /// <see cref="double"/>, and
         /// <see cref="float"/>.
         /// </summary>
@@ -165,6 +166,7 @@ namespace Qx.Security
                 typeof(long),
                 typeof(ulong),
                 typeof(char),
+                typeof(decimal),
                 typeof(double),
                 typeof(float),
             };
@@ -182,6 +184,7 @@ namespace Qx.Security
         /// <see cref="long"/>,
         /// <see cref="ulong"/>,
         /// <see cref="char"/>,
+        /// <see cref="decimal"/>,
         /// <see cref="double"/>, and
         /// <see cref="float"/>.
         /// </summary>
@@ -206,6 +209,7 @@ namespace Qx.Security
                 typeof(DateTime),
                 typeof(DateTimeOffset),
                 typeof(TimeSpan),
+                typeof(Tuple<,>),
             };
 
         /// <summary>
@@ -217,5 +221,22 @@ namespace Qx.Security
         /// <see cref="TimeSpan"/>.
         public static readonly IEnumerable<MemberInfo> DefaultExtendedPrimitiveMembers =
             DefaultExtendedPrimitiveTypes.SelectMany(t => t.GetMembers());
+
+        public static readonly IEnumerable<Type> DefaultTupleTypes =
+            new[]
+            {
+                typeof(ValueTuple),
+                typeof(ValueTuple<>),
+                typeof(ValueTuple<,>),
+                typeof(ValueTuple<,,>),
+                typeof(ValueTuple<,,,>),
+                typeof(ValueTuple<,,,,>),
+                typeof(ValueTuple<,,,,,>),
+                typeof(ValueTuple<,,,,,,>),
+                typeof(ValueTuple<,,,,,,,>),
+            };
+
+        public static readonly IEnumerable<MemberInfo> DefaultTupleMembers =
+            DefaultTupleTypes.SelectMany(t => t.GetMembers());
     }
 }

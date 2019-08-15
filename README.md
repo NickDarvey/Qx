@@ -42,6 +42,9 @@
   e.g. extensions to a client
 * Consider whitelisting members in addition to types, maybe even arguments.
   e.g. Allow Enumerable.Range(*, <= 100);
+* See if there's a way to do away with the injection of IAuthorizationService etc
+* Imagine a Roslyn analyzer which could look at some Qx metadata endpoint and identify what is and isn't allowed.
+  (e.g. which members are whitelisted)
 
 ## Limitations
 The integration with SignalR is uhh- lacking. If they add new features, they'll need to be added in Qx too.
