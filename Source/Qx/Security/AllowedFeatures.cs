@@ -27,7 +27,7 @@ namespace Qx.Security
         }
 
         public static Verifier Create(ExpressionFeatures features) =>
-            Verification.CreateVerifier(new AllowedFeaturesScanner(features).Scan);
+            Verification.CreateVerifierPattern(new AllowedFeaturesScanner(features).Scan);
 
         // Based on https://github.com/RxDave/Qactive/blob/6cd5a058082562128d51c50e3ac8bd393ea6015e/Source/Qactive/SecurityExpressionVisitor.cs#L7
         private class AllowedFeaturesScanner : ExpressionVisitor
@@ -39,7 +39,7 @@ namespace Qx.Security
                 _features = features;
             }
 
-            private List<(ExpressionFeatures Feature, Expression Node)> Errors { get; set; }
+            private List<(ExpressionFeatures Feature, Expression Node)>? Errors { get; set; }
 
             private void Check(ExpressionFeatures feature, Expression node)
             {
@@ -52,7 +52,7 @@ namespace Qx.Security
             {
                 _ = Visit(expression);
                 return Errors?.Select(error =>
-                    $"{error.Node.GetType().Name} '{error.Node.ToCSharpString()}' is not allowed because feature '{error.Feature}' is not enabled");
+                    $"{error.Node.GetType().Name} '{error.Node.ToCSharpString()}' is not allowed because feature '{error.Feature}' is not enabled")!;
             }
 
             protected override Expression VisitBinary(BinaryExpression node)

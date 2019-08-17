@@ -26,7 +26,7 @@ namespace Qx.Security
                 var left_ = left(expression, out var leftErrors);
                 var right_ = right(expression, out var rightErrors);
                 var verified = left_ && right_;
-                errors = verified ? null
+                errors = verified ? null!
                        : left_ == false && right_ == true ? leftErrors
                        : left_ == true && right_ == false ? rightErrors
                        : leftErrors.Concat(rightErrors);
@@ -48,7 +48,12 @@ namespace Qx.Security
             return Verify;
         }
 
-        internal static Verifier CreateVerifier(Func<Expression, IEnumerable<string>> scan)
+        /// <summary>
+        /// Constructs a verifier using a function which follows an exclusionary scanning pattern.
+        /// </summary>
+        /// <param name="scan">A function which </param>
+        /// <returns></returns>
+        internal static Verifier CreateVerifierPattern(Func<Expression, IEnumerable<string>> scan)
         {
             bool Verify(Expression expression, out IEnumerable<string> errors)
             {
@@ -56,7 +61,7 @@ namespace Qx.Security
 
                 if (collected == null)
                 {
-                    errors = default;
+                    errors = default!;
                     return true;
                 }
 
@@ -69,6 +74,5 @@ namespace Qx.Security
 
             return Verify;
         }
-    }
-    
+    }    
 }

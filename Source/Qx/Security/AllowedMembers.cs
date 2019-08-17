@@ -16,10 +16,10 @@ namespace Qx.Security
         public delegate bool MemberVerifier(MemberInfo member);
 
         public static Verifier Create(params MemberVerifier[] allowedMemberVerifiers) =>
-            Verification.CreateVerifier(new AllowedMembersScanner(allowedMemberVerifiers).Scan);
+            Verification.CreateVerifierPattern(new AllowedMembersScanner(allowedMemberVerifiers).Scan);
 
         public static Verifier Create(IEnumerable<MemberVerifier> allowedMemberVerifiers) =>
-            Verification.CreateVerifier(new AllowedMembersScanner(allowedMemberVerifiers.ToArray()).Scan);
+            Verification.CreateVerifierPattern(new AllowedMembersScanner(allowedMemberVerifiers.ToArray()).Scan);
 
         private class AllowedMembersScanner : ExpressionVisitor
         {
@@ -30,7 +30,7 @@ namespace Qx.Security
                 _verifiers = verifiers;
             }
 
-            private List<(MemberInfo Member, Expression? Node)> Errors { get; set; }
+            private List<(MemberInfo Member, Expression? Node)>? Errors { get; set; }
 
             private void Check(MemberInfo member, Expression? node = null)
             {
@@ -38,7 +38,7 @@ namespace Qx.Security
                 {
                     if (_verifiers[i](member)) return;
                 }
-                Errors ??= new List<(MemberInfo Member, Expression Subject)>();
+                Errors ??= new List<(MemberInfo Member, Expression? Node)>();
                 Errors.Add((member, node));
             }
 
@@ -46,7 +46,7 @@ namespace Qx.Security
             {
                 _ = Visit(expr);
                 return Errors?.Select(error =>
-                    $"{error.Node?.GetType().Name} '{error.Node?.ToCSharpString()}' is not allowed because it uses {error.Member.MemberType} member '{error.Member.ToCSharpString()}' which is not declared.");
+                    $"{error.Node?.GetType().Name} '{error.Node?.ToCSharpString()}' is not allowed because it uses {error.Member.MemberType} member '{error.Member.ToCSharpString()}' which is not declared.")!;
             }
 
             protected override Expression VisitBinary(BinaryExpression node)

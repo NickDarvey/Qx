@@ -29,7 +29,8 @@ namespace Qx.SignalR
             var selectBody = Expression.Lambda(Expression.Convert(elementParameter, resultType), elementParameter);
             var selectMethod = Expression.Call(
                 // TODO: Cache methodinfo per type
-                method: new Func<IAsyncQueryable<object>, Expression<Func<object, object>>, IAsyncQueryable<object>>(AsyncQueryable.Select).GetMethodInfo().GetGenericMethodDefinition().MakeGenericMethod(sourceType, resultType),
+                // TODO: null check for getmethodinfo during cache building
+                method: new Func<IAsyncQueryable<object>, Expression<Func<object, object>>, IAsyncQueryable<object>>(AsyncQueryable.Select).GetMethodInfo()!.GetGenericMethodDefinition().MakeGenericMethod(sourceType, resultType),
                 arg0: expression, arg1: selectBody);
 
             return selectMethod;
@@ -50,7 +51,7 @@ namespace Qx.SignalR
             var sourceType = expression.Type.GenericTypeArguments.Single();
 
 
-            var asTaskMethod = expression.Type.GetMethod(nameof(ValueTask<object>.AsTask));
+            var asTaskMethod = expression.Type.GetMethod(nameof(ValueTask<object>.AsTask)) ?? throw new InvalidOperationException($"Couldn't find {nameof(ValueTask<object>.AsTask)} method");
             var taskType = asTaskMethod.ReturnType;
 
             var continuationArg1Type = taskType;

@@ -33,8 +33,9 @@
 * ~~Pretty printer for expression errors~~
 * ~~See if there's a way to do away with the injection of IAuthorizationService etc~~
   Done via IQxService which gets hooked up to the DI system.
+* ~~Poke around with introducing a lightweight Either<,> and clean up the CompileQuery() method~~
+  Nah, 'coz of prior perf tests. Can't justify it.
 * Enable nullable reference types and clean up
-* Poke around with introducing a lightweight Either<,> and clean up the CompileQuery() method
 * Support inlining of local work
 * Support anonymous types
 * Support other ways people might create known resource invocations,

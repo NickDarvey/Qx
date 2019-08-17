@@ -99,7 +99,7 @@ namespace Qx
                 return true;
             }
 
-            resourceType = default;
+            resourceType = default!;
             isResourceInvocation = default;
             return false;
         }
@@ -119,8 +119,8 @@ namespace Qx
                 return true;
             }
 
-            parameterTypes = default;
-            returnType = default;
+            parameterTypes = default!;
+            returnType = default!;
             return false;
         }
     }

@@ -39,7 +39,7 @@ namespace Qx.SignalR
 
             if (errors_?.Count > 0)
             {
-                parameterMethodBindings = default;
+                parameterMethodBindings = default!;
                 errors = errors_;
                 return false;
             }
@@ -47,7 +47,7 @@ namespace Qx.SignalR
             else
             {
                 parameterMethodBindings = bindings_;
-                errors = default;
+                errors = default!;
                 return true;
             }
         }
@@ -95,7 +95,7 @@ namespace Qx.SignalR
 
             if (errors_?.Count > 0)
             {
-                bindings = default;
+                bindings = default!;
                 errors = errors_;
                 return false;
             }
@@ -103,7 +103,7 @@ namespace Qx.SignalR
             else
             {
                 bindings = bindings_;
-                errors = default;
+                errors = default!;
                 return true;
             }
         }

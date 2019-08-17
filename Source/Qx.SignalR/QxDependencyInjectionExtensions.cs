@@ -7,7 +7,7 @@ namespace Qx.SignalR
 {
     public static class QxDependencyInjectionExtensions
     {
-        public static ISignalRServerBuilder AddQx(this ISignalRServerBuilder builder, Func<QxOptions, QxOptions> optionsBuilder = null)
+        public static ISignalRServerBuilder AddQx(this ISignalRServerBuilder builder, Func<QxOptions, QxOptions>? optionsBuilder = null)
         {
             if (builder == null) throw new ArgumentNullException(nameof(builder));
 
