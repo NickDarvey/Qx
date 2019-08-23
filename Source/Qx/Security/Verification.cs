@@ -1,78 +1,53 @@
-﻿using Qx.Internals;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-
+using static Qx.Internals.Prelude;
 
 namespace Qx.Security
 {
     /// <summary>
-    /// Verifies an expression tree for security errors.
+    /// Verifies or refutes the security of an expression.
     /// </summary>
     /// <param name="expression">The expression to verify.</param>
-    /// <param name="errors">Security errors, or null.</param>
-    /// <returns>True, if no security errors, else false.</returns>
-    public delegate bool Verifier(Expression expression, out IEnumerable<string> errors);
+    /// <returns>Valid, if verified. Invalid, if refuted.</returns>
+    public delegate Validation<string, Unit> Verifier(Expression expression);
 
     public static class Verification
     {
-        public static Verifier And(this Verifier left, Verifier right)
-        {
-            bool Verify(Expression expression, out IEnumerable<string> errors)
-            {
-                // Evaluate both to collect all errors
-                var left_ = left(expression, out var leftErrors);
-                var right_ = right(expression, out var rightErrors);
-                var verified = left_ && right_;
-                errors = verified ? null!
-                       : left_ == false && right_ == true ? leftErrors
-                       : left_ == true && right_ == false ? rightErrors
-                       : leftErrors.Concat(rightErrors);
-                return left_ && right_;
-            }
-
-            return Verify;
-        }
-
-        public static Verifier Or(this Verifier left, Verifier right)
-        {
-            bool Verify(Expression expression, out IEnumerable<string> errors)
-            {
-                var left_ = left(expression, out errors);
-                if (left_) return true;
-                else return right(expression, out errors);
-            }
-
-            return Verify;
-        }
-
         /// <summary>
-        /// Constructs a verifier using a function which follows an exclusionary scanning pattern.
+        /// Creates a verifier based on a pattern of returning <see cref="IEnumerable{string}"/> if there are errors, else <see cref="null"/>.
         /// </summary>
-        /// <param name="scan">A function which </param>
+        /// <param name="func"></param>
         /// <returns></returns>
-        internal static Verifier CreateVerifierPattern(Func<Expression, IEnumerable<string>> scan)
+        internal static Verifier CreatePatternedVerifier(Func<Expression, IEnumerable<string>?> func)
         {
-            bool Verify(Expression expression, out IEnumerable<string> errors)
+            Validation<string, Unit> Verifier(Expression expression)
             {
-                var collected = scan(expression);
-
-                if (collected == null)
-                {
-                    errors = default!;
-                    return true;
-                }
-
-                else
-                {
-                    errors = collected;
-                    return false;
-                }
+                var result = func(expression);
+                return result == null
+                    ? new Validation<string, Unit>(Unit.Default)
+                    : new Validation<string, Unit>(result);
             }
 
-            return Verify;
+            return Verifier;
         }
-    }    
+
+        private static readonly Validation<string, Unit> Init = new Validation<string, Unit>(Unit.Default);
+        private static readonly Validation<string, Func<Unit, Func<Unit, Unit>>> KeepRight = new Validation<string, Func<Unit, Func<Unit, Unit>>>(l => r => r);
+
+        public static Verifier Combine(params Verifier[] verifiers) =>
+            expression =>
+            {
+                var current = Init;
+                foreach (var verify in verifiers)
+                {
+                    var next = verify(expression);
+                    current = next.Apply(current.Apply(KeepRight));
+                }
+
+                return current;
+            };
+    }
 }
+

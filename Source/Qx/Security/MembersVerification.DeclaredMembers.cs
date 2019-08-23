@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace Qx.Security
 {
-    public static partial class AllowedMembers
+    public static partial class MembersVerification
     {
         /// <summary>
         /// Compares a MemberInfo by its module (assembly), metadata token and its type arguments.

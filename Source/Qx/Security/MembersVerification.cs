@@ -11,15 +11,15 @@ namespace Qx.Security
     /// Verifies <see cref="MemberInfo"/>s of an expression against <see cref="MemberVerifier"/>s.
     /// If any member verifiers return true, the member is allowed.
     /// </summary>
-    public static partial class AllowedMembers
+    public static partial class MembersVerification
     {
         public delegate bool MemberVerifier(MemberInfo member);
 
         public static Verifier Create(params MemberVerifier[] allowedMemberVerifiers) =>
-            Verification.CreateVerifierPattern(new AllowedMembersScanner(allowedMemberVerifiers).Scan);
+            Verification.CreatePatternedVerifier(new AllowedMembersScanner(allowedMemberVerifiers).Scan);
 
         public static Verifier Create(IEnumerable<MemberVerifier> allowedMemberVerifiers) =>
-            Verification.CreateVerifierPattern(new AllowedMembersScanner(allowedMemberVerifiers.ToArray()).Scan);
+            Verification.CreatePatternedVerifier(new AllowedMembersScanner(allowedMemberVerifiers.ToArray()).Scan);
 
         private class AllowedMembersScanner : ExpressionVisitor
         {
@@ -42,11 +42,11 @@ namespace Qx.Security
                 Errors.Add((member, node));
             }
 
-            public IEnumerable<string> Scan(Expression expr)
+            public IEnumerable<string>? Scan(Expression expr)
             {
                 _ = Visit(expr);
                 return Errors?.Select(error =>
-                    $"{error.Node?.GetType().Name} '{error.Node?.ToCSharpString()}' is not allowed because it uses {error.Member.MemberType} member '{error.Member.ToCSharpString()}' which is not declared.")!;
+                    $"{error.Node?.GetType().Name} '{error.Node?.ToCSharpString()}' is not allowed because it uses {error.Member.MemberType} member '{error.Member.ToCSharpString()}' which is not declared.");
             }
 
             protected override Expression VisitBinary(BinaryExpression node)

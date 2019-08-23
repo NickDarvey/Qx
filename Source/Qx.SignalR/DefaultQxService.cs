@@ -12,9 +12,9 @@ namespace Qx.SignalR
 
         public DefaultQxService(QxOptions options, IAuthorizationService authorizationService, IAuthorizationPolicyProvider authorizationPolicyProvider)
         {
-            var featuresVerifier = AllowedFeatures.Create(options.AllowedFeatures);
-            var membersVerifier = AllowedMembers.Create(AllowedMembers.CreateDeclaredMembersVerifier(options.AllowedMembers));
-            _verifier = featuresVerifier.And(membersVerifier);
+            _verifier = Verification.Combine(
+                FeaturesVerification.Create(options.AllowedFeatures),
+                MembersVerification.Create(MembersVerification.CreateDeclaredMembersVerifier(options.AllowedMembers)));
             _authorizationService = authorizationService;
             _authorizationPolicyProvider = authorizationPolicyProvider;
         }

@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/GlobalSuppressions.cs" Link="Properties/GlobalSuppressions.cs"/>
+  </ItemGroup>
+</Project>

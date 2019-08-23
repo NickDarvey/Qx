@@ -47,6 +47,9 @@ namespace Qx.SignalR
             IReadOnlyDictionary<string, TSourceDescription> bindings,
             Func<Expression, Expression> boxingRewriter) where TSourceDescription : IQueryableSourceDescription
         {
+            static void ThrowHubException(string message, IEnumerable<string> errors) =>
+                throw new HubException($"{message}.{Environment.NewLine}{string.Join(Environment.NewLine, errors)}");
+
             // from _ in security.Verify(expr)
             // let unboundParameters = Find(expr)
             // from methodBindings in BindMethods(unboundParameters, bindings) // lift to Task
@@ -55,8 +58,8 @@ namespace Qx.SignalR
             // from query in BindingRewriter(expr, invocationBindings)
             // let boxedQuery = boxingRewriter(boundQuery)
 
-            var isVerified = verify(expression, out var verificationErrors);
-            if (isVerified == false) throw new HubException($"Failed to verify query. {string.Join(Environment.NewLine, verificationErrors)}");
+            var verification = verify(expression);
+            verification.Match(Valid: _ => { }, Invalid: errors => ThrowHubException("Failed to verify query", errors));
 
             var unboundParameters = Scanners.FindUnboundParameters(expression);
 

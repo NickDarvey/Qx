@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using static Qx.Security.AllowedFeatures;
-using static Qx.Security.AllowedMembers;
+using static Qx.Security.FeaturesVerification;
+using static Qx.Security.MembersVerification;
 
 namespace Qx.SignalR
 {

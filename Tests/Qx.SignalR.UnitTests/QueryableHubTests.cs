@@ -23,7 +23,7 @@ namespace Qx.SignalR.UnitTests
 
             var invoke = await CompileQuery<QueryableSourceDescription, int>(
                 expression: query,
-                authorizer: _ => Task.FromResult(true),
+                authorize: _ => Task.FromResult(true),
                 bindings: new Dictionary<string, QueryableSourceDescription> { { "Echo", new QueryableSourceDescription(echo.Target, echo.Method) } },
                 boxingRewriter: expr => expr);
             var result = invoke(expectedCancellationToken);

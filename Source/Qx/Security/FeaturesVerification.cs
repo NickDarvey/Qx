@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 
 namespace Qx.Security
 {
-    public static class AllowedFeatures
+    public static class FeaturesVerification
     {
         [Flags]
         public enum ExpressionFeatures
@@ -27,7 +27,7 @@ namespace Qx.Security
         }
 
         public static Verifier Create(ExpressionFeatures features) =>
-            Verification.CreateVerifierPattern(new AllowedFeaturesScanner(features).Scan);
+            Verification.CreatePatternedVerifier(new AllowedFeaturesScanner(features).Scan);
 
         // Based on https://github.com/RxDave/Qactive/blob/6cd5a058082562128d51c50e3ac8bd393ea6015e/Source/Qactive/SecurityExpressionVisitor.cs#L7
         private class AllowedFeaturesScanner : ExpressionVisitor
@@ -48,11 +48,11 @@ namespace Qx.Security
                 Errors.Add((feature, node));
             }
 
-            public IEnumerable<string> Scan(Expression expression)
+            public IEnumerable<string>? Scan(Expression expression)
             {
                 _ = Visit(expression);
                 return Errors?.Select(error =>
-                    $"{error.Node.GetType().Name} '{error.Node.ToCSharpString()}' is not allowed because feature '{error.Feature}' is not enabled")!;
+                    $"{error.Node.GetType().Name} '{error.Node.ToCSharpString()}' is not allowed because feature '{error.Feature}' is not enabled");
             }
 
             protected override Expression VisitBinary(BinaryExpression node)

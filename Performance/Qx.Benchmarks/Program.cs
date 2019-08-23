@@ -1,4 +1,5 @@
 ﻿using BenchmarkDotNet.Running;
+using Qx.Benchmarks.Security;
 using System;
 
 namespace Qx.Benchmarks
@@ -7,7 +8,7 @@ namespace Qx.Benchmarks
     {
         static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<Binders>();
+            var summary = BenchmarkRunner.Run<VerificationBenchmarks>();
         }
     }
 }

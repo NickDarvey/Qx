@@ -5,6 +5,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
   </PropertyGroup>
+  
   <ItemGroup>
     <PackageReference Include="ExpressionTreeToString" Version="1.5.65" />
     <PackageReference Include="System.Interactive.Async.Providers" Version="4.0.0-preview.6.build.801" />

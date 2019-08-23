@@ -26,6 +26,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.Benchmarks", "Performance\Qx.Benchmarks\Qx.Benchmarks.csproj", "{B5A3096B-9817-45EF-AFB6-3B21BEF580BC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{DCDB8296-E7B7-407D-802E-523E14971EDB}"
+	ProjectSection(SolutionItems) = preProject
+		Tests\Shared\Tests.props = Tests\Shared\Tests.props
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Performance", "Performance", "{3ED5DB3A-C4C3-4CB2-83AE-C8BC45379664}"
 EndProject
