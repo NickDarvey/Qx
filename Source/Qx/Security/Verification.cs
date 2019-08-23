@@ -1,8 +1,7 @@
-﻿using System;
+﻿using Qx.Prelude;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using static Qx.Internals.Prelude;
 
 namespace Qx.Security
 {
@@ -33,13 +32,22 @@ namespace Qx.Security
             return Verifier;
         }
 
-        private static readonly Validation<string, Unit> Init = new Validation<string, Unit>(Unit.Default);
+        /// <summary>
+        /// A validation that represents a verified expression
+        /// </summary>
+        public static readonly Validation<string, Unit> Verified = new Validation<string, Unit>(Unit.Default);
+
+        /// <summary>
+        /// A validation that represents an empty refuted expression.
+        /// </summary>
+        public static readonly Validation<string, Unit> Refuted = new Validation<string, Unit>();
+
         private static readonly Validation<string, Func<Unit, Func<Unit, Unit>>> KeepRight = new Validation<string, Func<Unit, Func<Unit, Unit>>>(l => r => r);
 
         public static Verifier Combine(params Verifier[] verifiers) =>
             expression =>
             {
-                var current = Init;
+                var current = Verified;
                 foreach (var verify in verifiers)
                 {
                     var next = verify(expression);

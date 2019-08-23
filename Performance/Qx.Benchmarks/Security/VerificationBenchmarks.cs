@@ -1,9 +1,9 @@
 ﻿using BenchmarkDotNet.Attributes;
+using Qx.Prelude;
 using Qx.Security;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
-using static Qx.Internals.Prelude;
 
 namespace Qx.Benchmarks.Security
 {

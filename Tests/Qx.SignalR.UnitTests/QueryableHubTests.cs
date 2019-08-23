@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Qx.Security;
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -23,6 +24,7 @@ namespace Qx.SignalR.UnitTests
 
             var invoke = await CompileQuery<QueryableSourceDescription, int>(
                 expression: query,
+                verify: _ => Verification.Verified,
                 authorize: _ => Task.FromResult(true),
                 bindings: new Dictionary<string, QueryableSourceDescription> { { "Echo", new QueryableSourceDescription(echo.Target, echo.Method) } },
                 boxingRewriter: expr => expr);

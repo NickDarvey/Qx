@@ -1,18 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Qx.Prelude;
 using System.Linq;
-using System.Text;
 using Xunit;
-using static Qx.Internals.Prelude;
 
-namespace Qx.UnitTests
+namespace Qx.UnitTests.Prelude
 {
     public class ValidationTests
     {
         private static Validation<string, int> IsEven(int i) =>
             i % 2 == 0 ? new Validation<string, int>(i) : new Validation<string, int>($"{i} is not an even number");
 
-        [Fact]
+        [Fact] // TODO: turn this into a property test 'coz there's laws for this
         public void Traverse_should_traverse()
         {
             var xs = new[] { 1, 2, 3, 4 };

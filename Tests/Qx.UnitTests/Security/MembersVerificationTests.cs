@@ -1,13 +1,13 @@
-﻿using System;
+﻿using Qx.Prelude;
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using Xunit;
-using static Qx.Internals.Prelude;
 using static Qx.Internals.ReflectionExtensions;
 using static Qx.Security.FeaturesVerification;
 using static Qx.Security.MembersVerification;
 
-namespace Qx.UnitTests
+namespace Qx.UnitTests.Security
 {
     public class MembersVerificationTests
     {

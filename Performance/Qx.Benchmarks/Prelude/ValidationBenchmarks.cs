@@ -1,10 +1,10 @@
 ﻿using BenchmarkDotNet.Attributes;
+using Qx.Prelude;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static Qx.Internals.Prelude;
 
-namespace Qx.Benchmarks
+namespace Qx.Benchmarks.Prelude
 {
     [MemoryDiagnoser]
     [HtmlExporter]
