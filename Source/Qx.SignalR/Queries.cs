@@ -18,14 +18,6 @@ namespace Qx.SignalR
     /// </summary>
     public static class Queries
     {
-        public delegate Task<bool> Authorizer<TMethodDescription>(IEnumerable<TMethodDescription> bindings) where TMethodDescription : IQueryableSourceDescription;
-
-        public interface IQueryableSourceDescription
-        {
-            MethodInfo Method { get; }
-            object Instance { get; }
-        }
-
         public static Task<Func<CancellationToken, IAsyncQueryable<object>>> CompileEnumerableQuery<TSourceDescription>(
             Expression expression,
             Verifier verify,
@@ -66,8 +58,8 @@ namespace Qx.SignalR
             var isMethodsBound = TryBindMethods(unboundParameters, bindings, out var methodBindings, out var methodBindingErrors);
             if (isMethodsBound == false) throw new HubException($"Failed to bind query to hub methods. {string.Join("; ", methodBindingErrors)}");
 
-            var isAuthorized = await authorize(methodBindings.Values);
-            if (isAuthorized == false) throw new HubException("Some helpful message about authorization");
+            var authorization = await authorize(methodBindings.Values);
+            authorization.Match(Valid: _ => { }, Invalid: errors => ThrowHubException("Failed to authorize query", errors));
 
             var expressionBindings = methodBindings.ToDictionary(b => b.Key, b =>
             {

@@ -23,24 +23,24 @@ namespace Qx.Security
         {
             Validation<string, Unit> Verifier(Expression expression)
             {
-                var result = func(expression);
-                return result == null
-                    ? new Validation<string, Unit>(Unit.Default)
-                    : new Validation<string, Unit>(result);
+                var results = func(expression);
+                return results == null ? Verified : Refute(reasons: results);
             }
 
             return Verifier;
         }
 
         /// <summary>
-        /// A validation that represents a verified expression
+        /// A validation that represents a verification of an expression
         /// </summary>
         public static readonly Validation<string, Unit> Verified = new Validation<string, Unit>(Unit.Default);
 
         /// <summary>
-        /// A validation that represents an empty refuted expression.
+        /// A validation that represents an empty refutation of an expression.
         /// </summary>
         public static readonly Validation<string, Unit> Refuted = new Validation<string, Unit>();
+
+        public static Validation<string, Unit> Refute(IEnumerable<string> reasons) => new Validation<string, Unit>(reasons);
 
         private static readonly Validation<string, Func<Unit, Func<Unit, Unit>>> KeepRight = new Validation<string, Func<Unit, Func<Unit, Unit>>>(l => r => r);
 

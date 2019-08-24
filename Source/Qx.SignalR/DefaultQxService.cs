@@ -19,7 +19,7 @@ namespace Qx.SignalR
             _authorizationPolicyProvider = authorizationPolicyProvider;
         }
 
-        public Queries.Authorizer<Hubs.HubQueryableSourceDescription> GetAuthorizer(HubCallerContext context) =>
+        public Authorizer<Hubs.HubQueryableSourceDescription> GetAuthorizer(HubCallerContext context) =>
             Hubs.CreateHubAuthorizer(context.User, _authorizationService, _authorizationPolicyProvider);
 
         public Verifier GetVerifier() => _verifier;

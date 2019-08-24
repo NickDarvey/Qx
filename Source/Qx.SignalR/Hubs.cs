@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Qx.Security;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -36,10 +37,12 @@ namespace Qx.SignalR
             async bindings =>
             {
                 var policies = bindings.SelectMany(binding => binding.Policies).ToArray();
-                if (policies.Length == 0) return true;
+                if (policies.Length == 0) return Authorization.Authorized;
                 var combinedPolicy = await AuthorizationPolicy.CombineAsync(authorizationPolicyProvider, policies);
                 var result = await authorizationService.AuthorizeAsync(user, combinedPolicy);
-                return result.Succeeded;
+                return result.Succeeded
+                    ? Authorization.Authorized
+                    : Authorization.Forbid(reasons: result.Failure.FailedRequirements.Select(x => x.GetType().Name));
             };
 
         public class HubQueryableSourceDescription : IQueryableSourceDescription
