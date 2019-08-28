@@ -1,7 +1,10 @@
-﻿using System;
+﻿using Qx.Prelude;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
+using static Qx.Rewriters;
 
 namespace Qx.SignalR
 {
@@ -11,14 +14,16 @@ namespace Qx.SignalR
     internal static class Binders
     {
         /// <summary>
-        /// Binds methods to a set of parameters by name.
+        /// Tries to binds methods to a set of parameters by name.
         /// </summary>
-        /// <param name="parameters"></param>
-        /// <param name="nameMethodBindings"></param>
-        /// <param name="parameterMethodBindings"></param>
-        /// <param name="errors"></param>
-        /// <returns></returns>
-        public static bool TryBindMethods<TSourceDescription>(IEnumerable<ParameterExpression> parameters, IReadOnlyDictionary<string, TSourceDescription> nameMethodBindings, out IReadOnlyDictionary<ParameterExpression, TSourceDescription> parameterMethodBindings, out IEnumerable<string> errors)
+        /// <param name="parameterMethodBindings">If success, the resulting bindings.</param>
+        /// <param name="errors">If failure, the errors which caused the failure.</param>
+        /// <returns>True, if success. False, if failure</returns>
+        public static bool TryBindMethods<TSourceDescription>(
+            IEnumerable<ParameterExpression> parameters,
+            IReadOnlyDictionary<string, TSourceDescription> nameMethodBindings,
+            [NotNullWhen(true)] out IReadOnlyDictionary<ParameterExpression, TSourceDescription>? parameterMethodBindings,
+            [NotNullWhen(false)] out IEnumerable<string>? errors)
         {
             var bindings_ = new Dictionary<ParameterExpression, TSourceDescription>();
             var errors_ = default(List<string>);
@@ -39,7 +44,7 @@ namespace Qx.SignalR
 
             if (errors_?.Count > 0)
             {
-                parameterMethodBindings = default!;
+                parameterMethodBindings = default;
                 errors = errors_;
                 return false;
             }
@@ -47,28 +52,43 @@ namespace Qx.SignalR
             else
             {
                 parameterMethodBindings = bindings_;
-                errors = default!;
+                errors = default;
                 return true;
             }
         }
 
         /// <summary>
-        /// Tries to converts lambda bindings to invocation (factory) bindings, injecting optional synthetic parameters if needed.
+        /// Tries to binds methods to a set of parameters by name.
+        /// </summary>
+        public static Validation<string, IReadOnlyDictionary<ParameterExpression, TSourceDescription>> BindMethods<TSourceDescription>(
+            IEnumerable<ParameterExpression> parameters,
+            IReadOnlyDictionary<string, TSourceDescription> nameMethodBindings) =>
+            TryBindMethods(parameters, nameMethodBindings, out var parameterMethodBindings, out var errors)
+                ? new Validation<string, IReadOnlyDictionary<ParameterExpression, TSourceDescription>>(parameterMethodBindings)
+                : new Validation<string, IReadOnlyDictionary<ParameterExpression, TSourceDescription>>(errors);
+
+
+        /// <summary>
+        /// Tries to convert lambda bindings to invocation (factory) bindings, injecting optional synthetic parameters if needed.
         /// </summary>
         /// <remarks>
         /// The results can be used as bindings when rewriting a Qx query to replace its unbound parameters,
         /// <see cref="Rewriters.Rewrite(Expression, IReadOnlyDictionary{ParameterExpression, Rewriters.InvocationFactory})"/>.
         /// </remarks>
-        /// <param name="lambdaBindings">A set of unbound <see cref="ParameterExpression"/> and <see cref="LambdaExpression"/> bindings.</param>
+        /// <param name="parameterLambdaBindings">A set of unbound <see cref="ParameterExpression"/> and <see cref="LambdaExpression"/> bindings.</param>
         /// <param name="optionalSyntheticParameters">Optional synthetic parameters to supply should a <see cref="LambdaExpression"/> require them.</param>
-        /// <param name="bindings">If success, the resulting bindings.</param>
+        /// <param name="parameterInvocationBindings">If success, the resulting bindings.</param>
         /// <param name="errors">If failure, the errors which caused the failure.</param>
         /// <returns>True, if success. False, if failure</returns>
-        public static bool TryBindInvocations(IReadOnlyDictionary<ParameterExpression, LambdaExpression> lambdaBindings, IEnumerable<ParameterExpression> optionalSyntheticParameters, out IReadOnlyDictionary<ParameterExpression, Qx.Rewriters.InvocationFactory> bindings, out IEnumerable<string> errors)
+        public static bool TryBindInvocations(
+            IReadOnlyDictionary<ParameterExpression, LambdaExpression> parameterLambdaBindings,
+            IEnumerable<ParameterExpression> optionalSyntheticParameters,
+            [NotNullWhen(true)] out IReadOnlyDictionary<ParameterExpression, InvocationFactory>? parameterInvocationBindings,
+            [NotNullWhen(false)] out IEnumerable<string>? errors)
         {
             var bindings_ = new Dictionary<ParameterExpression, Qx.Rewriters.InvocationFactory>();
             var errors_ = default(List<string>);
-            foreach (var binding in lambdaBindings)
+            foreach (var binding in parameterLambdaBindings)
             {
                 if (binding.Value == default) throw new InvalidOperationException($"No binding for query source named '{binding.Key}'");
 
@@ -95,17 +115,51 @@ namespace Qx.SignalR
 
             if (errors_?.Count > 0)
             {
-                bindings = default!;
+                parameterInvocationBindings = default;
                 errors = errors_;
                 return false;
             }
 
             else
             {
-                bindings = bindings_;
-                errors = default!;
+                parameterInvocationBindings = bindings_;
+                errors = default;
                 return true;
             }
         }
+
+        /// <summary>
+        /// Tries to convert lambda bindings to invocation (factory) bindings, injecting optional synthetic parameters if needed.
+        /// </summary>
+        /// <remarks>
+        /// The results can be used as bindings when rewriting a Qx query to replace its unbound parameters,
+        /// <see cref="Rewriters.Rewrite(Expression, IReadOnlyDictionary{ParameterExpression, Rewriters.InvocationFactory})"/>.
+        /// </remarks>
+        /// <param name="optionalSyntheticParameters">Optional synthetic parameters to supply should a <see cref="LambdaExpression"/> require them.</para
+        public static Validation<string, IReadOnlyDictionary<ParameterExpression, InvocationFactory>> BindInvocations(
+            IReadOnlyDictionary<ParameterExpression, LambdaExpression> lambdaBindings,
+            IEnumerable<ParameterExpression> optionalSyntheticParameters) =>
+            TryBindInvocations(lambdaBindings, optionalSyntheticParameters, out var bindings, out var errors)
+                ? new Validation<string, IReadOnlyDictionary<ParameterExpression, InvocationFactory>>(bindings)
+                : new Validation<string, IReadOnlyDictionary<ParameterExpression, InvocationFactory>>(errors);
+
+
+
+        /// <summary>
+        /// Binds methods to lambda expressions so they can be invoked.
+        /// </summary>
+        public static IReadOnlyDictionary<ParameterExpression, LambdaExpression> BindLambdas<TSourceDescription>(
+            IReadOnlyDictionary<ParameterExpression, TSourceDescription> parameterMethodBindings)
+            where TSourceDescription : IQueryableSourceDescription =>
+            parameterMethodBindings.ToDictionary(
+                keySelector: b => b.Key,
+                elementSelector: b =>
+                {
+                    var parameters = b.Value.Method.GetParameters();
+                    var args = new ParameterExpression[parameters.Length];
+                    for (int i = 0; i < args.Length; i++) args[i] = Expression.Parameter(parameters[i].ParameterType, parameters[i].Name);
+                    var call = Expression.Call(Expression.Constant(b.Value.Instance), b.Value.Method, args);
+                    return Expression.Lambda(call, args);
+                });
     }
 }

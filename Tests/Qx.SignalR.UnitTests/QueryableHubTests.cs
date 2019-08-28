@@ -28,7 +28,7 @@ namespace Qx.SignalR.UnitTests
                 authorize: _ => Authorization.AuthorizedTask,
                 bindings: new Dictionary<string, QueryableSourceDescription> { { "Echo", new QueryableSourceDescription(echo.Target, echo.Method) } },
                 boxingRewriter: expr => expr);
-            var result = invoke(expectedCancellationToken);
+            var result = invoke.OrThrowHubException()(expectedCancellationToken);
 
             Assert.Equal(42, result);
             Assert.Equal(expectedCancellationToken, capturingQueryableObject.CapturedToken);

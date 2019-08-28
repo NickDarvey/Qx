@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Qx.Prelude
 {
@@ -59,9 +60,20 @@ namespace Qx.Prelude
         public Validation<TError, TReturnValue> SelectMany<TReturnValue>(Func<TValue, Validation<TError, TReturnValue>> bind) =>
             IsValid ? bind(Value) : new Validation<TError, TReturnValue>(Errors);
 
+        public ValueTask<Validation<TError, TReturnValue>> SelectMany<TReturnValue>(Func<TValue, ValueTask<Validation<TError, TReturnValue>>> bind) =>
+            IsValid ? bind(Value) : new ValueTask<Validation<TError, TReturnValue>>(new Validation<TError, TReturnValue>(Errors));
+
         public Validation<TError, TReturnValue> SelectMany<TBoundValue, TReturnValue>(Func<TValue, Validation<TError, TBoundValue>> bind, Func<TValue, TBoundValue, TReturnValue> project)
         {
             var bound = SelectMany(bind);
+            return bound.IsValid
+                ? new Validation<TError, TReturnValue>(project(Value, bound.Value))
+                : new Validation<TError, TReturnValue>(bound.Errors);
+        }
+
+        public async ValueTask<Validation<TError, TReturnValue>> SelectMany<TBoundValue, TReturnValue>(Func<TValue, ValueTask<Validation<TError, TBoundValue>>> bind, Func<TValue, TBoundValue, TReturnValue> project)
+        {
+            var bound = await SelectMany(bind);
             return bound.IsValid
                 ? new Validation<TError, TReturnValue>(project(Value, bound.Value))
                 : new Validation<TError, TReturnValue>(bound.Errors);

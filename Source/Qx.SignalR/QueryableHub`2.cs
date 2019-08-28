@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Serialize.Linq.Nodes;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using static Qx.SignalR.Hubs;
 using static Qx.SignalR.Queries;
@@ -15,16 +16,14 @@ namespace Qx.SignalR
         public QueryableHub(IQxService service) => _service = service;
 
         [HubMethodName("qx`n")]
-        public async Task<IAsyncEnumerable<object>> GetEnumerable(ExpressionNode expression)
+        public async Task<IAsyncEnumerable<object>> GetEnumerable(ExpressionNode expression, CancellationToken cancellationToken)
         {
-            // Till https://github.com/aspnet/AspNetCore/issues/11495
-            var cancellationToken = Context.ConnectionAborted;
             var query = await CompileEnumerableQuery(
                 expression: expression.ToExpression(),
                 verify: _service.GetVerifier(),
                 authorize: _service.GetAuthorizer(Context),
                 bindings: _hubMethods.WithInstance(this));
-            return query(cancellationToken);
+            return query.OrThrowHubException()(cancellationToken);
         }
 
         [HubMethodName("qx`1")]
@@ -35,7 +34,7 @@ namespace Qx.SignalR
                 verify: _service.GetVerifier(),
                 authorize: _service.GetAuthorizer(Context),
                 bindings: _hubMethods.WithInstance(this));
-            return await query(Context.ConnectionAborted);
+            return await query.OrThrowHubException()(Context.ConnectionAborted);
         }
     }
 }

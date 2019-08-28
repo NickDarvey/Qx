@@ -1,10 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Qx.Prelude;
 using Qx.Security;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
+using System.Threading;
 using static Qx.SignalR.Queries;
 
 namespace Qx.SignalR
@@ -42,10 +45,13 @@ namespace Qx.SignalR
                 var result = await authorizationService.AuthorizeAsync(user, combinedPolicy);
                 return result.Succeeded
                     ? Authorization.Authorized
-                    : Authorization.Forbid(reasons: result.Failure.FailedRequirements.Select(x => x.GetType().Name));
+                    : Authorization.Forbid(reasons: result.Failure.FailedRequirements.Select(x => x.GetType().Name)); // TODO: Is this the right kinda authz failure error?
             };
 
-        public class HubQueryableSourceDescription : IQueryableSourceDescription
+        public static Func<CancellationToken, TResult> OrThrowHubException<TResult>(this Validation<string, Func<CancellationToken, TResult>> @this) =>
+            @this.Match(Valid: v => v, Invalid: e => throw new HubException("Invalid query" + Environment.NewLine + string.Join(Environment.NewLine, e)));
+
+        public struct HubQueryableSourceDescription : IQueryableSourceDescription
         {
             public HubQueryableSourceDescription(object instance, MethodInfo method, IEnumerable<IAuthorizeData> policies)
             {
@@ -61,7 +67,7 @@ namespace Qx.SignalR
             public IEnumerable<IAuthorizeData> Policies { get; }
         }
 
-        public class HubMethodDescription
+        public struct HubMethodDescription
         {
             public HubMethodDescription(MethodInfo method, IEnumerable<IAuthorizeData> policies)
             {

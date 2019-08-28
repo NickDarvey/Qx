@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Qx.Prelude
 {
@@ -16,5 +17,14 @@ namespace Qx.Prelude
 
             return values.Aggregate(seed: Init(), func: (s, x) => func(x).Apply(s.Apply(Append())));
         }
+
+        public static async ValueTask<Validation<TError, TReturnValue>> SelectMany<TError, TValue, TReturnValue>(this ValueTask<Validation<TError, TValue>> @this, Func<TValue, ValueTask<Validation<TError, TReturnValue>>> bind) =>
+            await (await @this).SelectMany(bind);
+
+        public static async ValueTask<Validation<TError, TReturnValue>> SelectMany<TError, TValue, TBoundValue, TReturnValue>(this ValueTask<Validation<TError, TValue>> @this, Func<TValue, ValueTask<Validation<TError, TBoundValue>>> bind, Func<TValue, TBoundValue, TReturnValue> project) =>
+            await (await @this).SelectMany(bind, project);
+
+        public static async ValueTask<Validation<TError, TReturnValue>> Select<TError, TValue, TReturnValue>(this ValueTask<Validation<TError, TValue>> @this, Func<TValue, TReturnValue> project) =>
+            (await @this).Select(project);
     }
 }

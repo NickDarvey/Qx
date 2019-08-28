@@ -8,7 +8,7 @@ namespace Qx.Benchmarks
     {
         static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<VerificationBenchmarks>();
+            var summary = BenchmarkRunner.Run<QueriesBenchmarks>();
         }
     }
 }
