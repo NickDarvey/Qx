@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace Qx
+namespace Qx.Client
 {
     public interface IAsyncQueryClient
     {

@@ -1,12 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="../Common.props" />
+  <Import Project="../Shared/Common.props" />
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <RootNamespace>Qx</RootNamespace>
   </PropertyGroup>
+  
   <ItemGroup>
     <PackageReference Include="System.Linq.Async.Queryable" Version="4.0.0-preview.6.build.801" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Shared/ReflectionExtensions.cs" Link="Internals/ReflectionExtensions.cs" />
+    <Compile Include="../Shared/KnownResourceExtensions.cs" Link="Internals/KnownResourceExtensions.cs" />
   </ItemGroup>
 </Project>

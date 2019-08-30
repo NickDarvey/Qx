@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Source\Qx.SignalR.Client\Qx.SignalR.Client.csproj" />
+    <ProjectReference Include="..\..\..\Source\Qx.SignalR.Client\Qx.Client.SignalR.csproj" />
     <ProjectReference Include="..\Nyse.Schema\Nyse.Schema.csproj" />
   </ItemGroup>
 

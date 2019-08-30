@@ -35,7 +35,7 @@
   Done via IQxService which gets hooked up to the DI system.
 * ~~Poke around with introducing a lightweight Either<,> and clean up the CompileQuery() method~~
   Nah, 'coz of prior perf tests. Can't justify it.
-* Enable nullable reference types and clean up
+* ~Enable nullable reference types and clean up~
 * Support inlining of local work
 * Support anonymous types
 * Support other ways people might create known resource invocations,

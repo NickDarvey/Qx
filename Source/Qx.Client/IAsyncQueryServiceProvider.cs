@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Qx
+namespace Qx.Client
 {
     public interface IAsyncQueryServiceProvider
     {

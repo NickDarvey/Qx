@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Nyse.Schema;
-using Qx;
-using Qx.SignalR;
+using Qx.Client;
+using Qx.Client.SignalR;
 using System;
 using System.Linq;
 using System.Net.Http;

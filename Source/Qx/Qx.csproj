@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="../Common.props" />
+  <Import Project="../Shared/Common.props" />
   
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -9,5 +9,9 @@
   <ItemGroup>
     <PackageReference Include="ExpressionTreeToString" Version="1.5.65" />
     <PackageReference Include="System.Interactive.Async.Providers" Version="4.0.0-preview.6.build.801" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Shared/ReflectionExtensions.cs" Link="Internals/ReflectionExtensions.cs"/>
   </ItemGroup>
 </Project>

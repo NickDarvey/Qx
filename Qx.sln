@@ -19,7 +19,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.SignalR.UnitTests", "Tes
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{18FF645E-4DEB-4965-AC2C-0EA113D6EA1A}"
 	ProjectSection(SolutionItems) = preProject
-		Source\Common.props = Source\Common.props
+		Source\Shared\Common.props = Source\Shared\Common.props
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -44,7 +44,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.Client.UnitTests", "Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx", "Source\Qx\Qx.csproj", "{8CE364E8-56C9-43C3-A365-07CCFBC553EC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.SignalR.Client", "Source\Qx.SignalR.Client\Qx.SignalR.Client.csproj", "{E0A00CFA-09EB-44E2-AB73-53DC044C5E31}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qx.Client.SignalR", "Source\Qx.SignalR.Client\Qx.Client.SignalR.csproj", "{E0A00CFA-09EB-44E2-AB73-53DC044C5E31}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Qx.SignalR
+namespace Qx.Client.SignalR
 {
     public class DefaultAsyncQueryServiceProvider : IAsyncQueryServiceProvider
     {
