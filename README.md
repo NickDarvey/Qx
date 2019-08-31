@@ -27,8 +27,8 @@ var query = client.GetEnumerable<SharePrice>("SharePrices")
 await foreach (var element in query)
 {
     Console.WriteLine($"{element.Item2} ({element.Item1}): {element.Item3.ToString("C")}");
-	// Each element received by the client is the name, symbol and market cap
-	// > Microsoft (MSFT): $lots
+    // Each element received by the client is the name, symbol and market cap
+    // > Microsoft (MSFT): $lots
 }
 ```
 
@@ -51,10 +51,10 @@ This is the easiest way to get going though it has some defaults which you might
 1. Update your `Startup.cs`'s `ConfigureServices` method to add Qx and configure the Verifier with the members and features you want to allow.
    ```csharp
    services.AddSignalR()
-			// Allow anything in our MySchema library (our models/DTOs/etc) so our client can use them in queries
-		   .AddQx(o => o.WithAllowedMembers(from types in typeof(MySchema.SomeDtoClass).Assembly.GetTypes()
-											from members in types.GetMembers()
-											select members))
+		// Allow anything in our MySchema library (our models/DTOs/etc) so our client can use them in queries
+		.AddQx(o => o.WithAllowedMembers(from types in typeof(MySchema.SomeDtoClass).Assembly.GetTypes()
+						 from members in types.GetMembers()
+						 select members))
    ```
 1. Update your Hub to inherit from `QueryableHub<THub>`, which will look like `MyHub : QueryableHub<MyHub>`.
    You pass in the Hub type as a type parameter so we can inspect the Hub methods to discover the available streams.
