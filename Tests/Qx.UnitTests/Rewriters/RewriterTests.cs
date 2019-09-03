@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using static Qx.Rewriters.BindingRewriter;
 
 namespace Qx.UnitTests
 {
@@ -20,7 +21,7 @@ namespace Qx.UnitTests
             var query = client.GetEnumerable<int>("Range");
             var bindings = CreateBindings((query, source));
 
-            var result = Rewriters.BindingRewriter(query.Expression, bindings);
+            var result = Rewrite(query.Expression, bindings);
 
             var invoke = Expression.Lambda<Func<IAsyncQueryable<int>>>(result).Compile();
             Assert.Equal(range.ToEnumerable(), invoke().ToEnumerable());
@@ -40,7 +41,7 @@ namespace Qx.UnitTests
             var query = querySource1.Join(querySource2, x => x, y => y, (x, y) => x + y);
             var expected = range1.Join(range2, x => x, y => y, (x, y) => x + y);
 
-            var result = Rewriters.BindingRewriter(query.Expression, bindings);
+            var result = Rewrite(query.Expression, bindings);
 
             var invoke = Expression.Lambda<Func<IAsyncQueryable<int>>>(result).Compile();
             Assert.Equal(expected.ToEnumerable(), invoke().ToEnumerable());
@@ -57,14 +58,14 @@ namespace Qx.UnitTests
             var query = client.GetEnumerable<int, int, int>("Range")(start, count);
             var bindings = CreateBindings((query, source));
 
-            var result = Rewriters.BindingRewriter(query.Expression, bindings);
+            var result = Rewrite(query.Expression, bindings);
 
             var invoke = Expression.Lambda<Func<IAsyncQueryable<int>>>(result).Compile();
             Assert.Equal(range(start, count).ToEnumerable(), invoke().ToEnumerable());
         }
 
-        private static IReadOnlyDictionary<ParameterExpression, Rewriters.InvocationFactory> CreateBindings(params (IAsyncQueryable Query, LambdaExpression Impl)[] bindings) =>
-            bindings.ToDictionary<(IAsyncQueryable Query, LambdaExpression Impl), ParameterExpression, Rewriters.InvocationFactory>(
+        private static IReadOnlyDictionary<ParameterExpression, InvocationFactory> CreateBindings(params (IAsyncQueryable Query, LambdaExpression Impl)[] bindings) =>
+            bindings.ToDictionary<(IAsyncQueryable Query, LambdaExpression Impl), ParameterExpression, InvocationFactory>(
                 keySelector: binding => (ParameterExpression)((InvocationExpression)binding.Query.Expression).Expression,
                 elementSelector: binding => args => Expression.Invoke(binding.Impl, args));
 

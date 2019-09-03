@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
-using static Qx.Rewriters;
+using static Qx.Rewriters.BindingRewriter;
 
 namespace Qx.SignalR
 {
@@ -86,7 +86,7 @@ namespace Qx.SignalR
             [NotNullWhen(true)] out IReadOnlyDictionary<ParameterExpression, InvocationFactory>? parameterInvocationBindings,
             [NotNullWhen(false)] out IEnumerable<string>? errors)
         {
-            var bindings_ = new Dictionary<ParameterExpression, Qx.Rewriters.InvocationFactory>();
+            var bindings_ = new Dictionary<ParameterExpression, InvocationFactory>();
             var errors_ = default(List<string>);
             foreach (var binding in parameterLambdaBindings)
             {

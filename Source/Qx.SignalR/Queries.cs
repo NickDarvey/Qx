@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using static Qx.Rewriters;
+using Qx.Rewriters;
 using static Qx.SignalR.Binders;
 using static Qx.SignalR.Rewriters;
 
@@ -46,7 +46,7 @@ namespace Qx.SignalR
             let lambdaBindings = BindLambdas(methodBindings)
             let syntheticParameters = new[] { Expression.Parameter(typeof(CancellationToken)) }
             from invocationBindings in BindInvocations(lambdaBindings, syntheticParameters).ToValueTask()
-            let boundQuery = BindingRewriter(expression, invocationBindings)
+            let boundQuery = BindingRewriter.Rewrite(expression, invocationBindings)
             let boxedQuery = boxingRewriter(boundQuery)
             select Expression.Lambda<Func<CancellationToken, TResult>>(boxedQuery, syntheticParameters).Compile();
     }

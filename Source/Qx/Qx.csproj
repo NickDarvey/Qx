@@ -12,6 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="../Shared/ReflectionExtensions.cs" Link="Internals/ReflectionExtensions.cs"/>
+    <Compile Include="../Shared/ReflectionExtensions.cs" Link="Internals/ReflectionExtensions.cs" />
   </ItemGroup>
 </Project>

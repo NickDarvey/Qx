@@ -98,7 +98,7 @@ namespace Qx.Benchmarks
             var isInvocationsBound = Qx.SignalR.Binders.TryBindInvocations(expressionBindings, syntheticParameters, out var invocationBindings, out var invocationBindingErrors);
             if (isInvocationsBound == false) ThrowHubException("Failed to bind query to hub methods", invocationBindingErrors);
 
-            var boundQuery = Qx.Rewriters.BindingRewriter(expression, invocationBindings);
+            var boundQuery = Qx.Rewriters.BindingRewriter.Rewrite(expression, invocationBindings);
             var boxedQuery = boxingRewriter(boundQuery);
 
             var invoke = Expression.Lambda<Func<CancellationToken, TResult>>(boxedQuery, syntheticParameters).Compile();
