@@ -139,7 +139,8 @@ There's nothing special here, you can use an `Authorize` attribute or execute yo
 * ~~See if there's a way to do away with the injection of IAuthorizationService etc~~
   Done via IQxService which gets hooked up to the DI system.
 * ~~Poke around with introducing a lightweight Either<,> and clean up the CompileQuery() method~~
-  Nah, 'coz of prior perf tests. Can't justify it.
+  ~~Nah, 'coz of prior perf tests. Can't justify it.~~
+  Could justify it, made it very lightweight.
 * ~~Enable nullable reference types and clean up~~
 * ~~Support inlining of local work~~
 * ~~Write a bit of a README~~
