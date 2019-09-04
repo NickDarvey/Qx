@@ -31,26 +31,28 @@ namespace Qx.Client.Rewriters
 
             private class TupleInfo
             {
-                public TupleInfo(Type type, Func<ReadOnlyCollection<Expression>, NewExpression> newExpressionFactory)
+                public TupleInfo(
+                    Type type,
+                    Func<ReadOnlyCollection<Expression>, NewExpression> newExpressionFactory,
+                    Func<object, ConstantExpression> constantExpressionFactory)
                 {
                     Type = type;
                     GetNewExpression = newExpressionFactory;
+                    GetConstantExpression = constantExpressionFactory;
                 }
 
                 public Type Type { get; }
                 public Func<ReadOnlyCollection<Expression>, NewExpression> GetNewExpression { get; }
+                public Func<object, ConstantExpression> GetConstantExpression { get; }
             }
 
             private readonly Dictionary<Type, TupleInfo> _tuples = new Dictionary<Type, TupleInfo>();
 
-            protected override Expression VisitNew(NewExpression node)
+            protected override Expression VisitConstant(ConstantExpression node)
             {
-                if (!TryUpdateAnonymousType(node.Type, out var tupleInfo)) return base.VisitNew(node);
+                if (!TryUpdateAnonymousType(node.Type, out var tupleInfo)) return base.VisitConstant(node);
 
-                var arguments = Visit(node.Arguments);
-                var newTuple = tupleInfo.GetNewExpression(arguments);
-
-                return newTuple;
+                return tupleInfo.GetConstantExpression(node.Value);
             }
 
             protected override Expression VisitLambda<T>(Expression<T> node)
@@ -62,6 +64,15 @@ namespace Qx.Client.Rewriters
                 var type = node.Type.GetGenericTypeDefinition().MakeGenericType(arguments);
 
                 return Expression.Lambda(type, Visit(node.Body), node.Name, node.TailCall, VisitAndConvert(node.Parameters, nameof(VisitLambda)));
+            }
+
+            protected override Expression VisitNew(NewExpression node)
+            {
+                if (!TryUpdateAnonymousType(node.Type, out var tupleInfo)) return base.VisitNew(node);
+
+                var arguments = Visit(node.Arguments);
+
+                return tupleInfo.GetNewExpression(arguments); ;
             }
 
             private bool TryUpdateAnonymousType(Type type, [NotNullWhen(true)] out TupleInfo? tupleInfo )
@@ -89,18 +100,28 @@ namespace Qx.Client.Rewriters
                     throw new NotImplementedException($"Anonymous types with 0 properties are not supported, yet.");
 
                 var tupleType = TupleTypes[constructorParametersTypes.Length].MakeGenericType(constructorParametersTypes);
-                var tupleConstructor = tupleType.GetConstructor(constructorParametersTypes);
+                var tupleConstructorInfo = tupleType.GetConstructor(constructorParametersTypes);
+                var tupleConversionExpression = CreateTupleConversionExpression(type, tupleType); // TODO
+                var tupleConversionDelegate = default(Delegate); // For caching, closed over in CreateConstant so it is only compiled once and only if needed
 
-                NewExpression CreateNew(ReadOnlyCollection<Expression> arguments) => Expression.New(tupleConstructor, arguments);
+                NewExpression CreateNew(ReadOnlyCollection<Expression> arguments) => Expression.New(tupleConstructorInfo, arguments);
+                ConstantExpression CreateConstant(object value) => Expression.Constant(
+                    (tupleConversionDelegate ??= tupleConversionExpression.Compile()).DynamicInvoke(value), tupleType);
 
-                var tupleInfo_ = new TupleInfo(tupleType, CreateNew);
+                var tupleInfo_ = new TupleInfo(tupleType, CreateNew, CreateConstant);
                 
                 _tuples[type] = tupleInfo_;
                 tupleInfo = tupleInfo_;
                 return true;
             }
-
             
+            private static LambdaExpression CreateTupleConversionExpression(Type anonymousType, Type tupleType)
+            {
+                throw new NotImplementedException();
+                // get the properties of the anon type
+                // build member accessors for the properties
+                // build a new expresion and pass it the member accessors?
+            }
         }
     }
 }
