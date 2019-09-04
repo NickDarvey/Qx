@@ -49,6 +49,25 @@ namespace Qx.Client.Rewriters
 
             private readonly Dictionary<Type, TupleInfo> _tuples = new Dictionary<Type, TupleInfo>();
 
+            protected override Expression VisitMethodCall(MethodCallExpression node)
+            {
+                if (!node.Method.IsGenericMethod) return base.VisitMethodCall(node);
+                var arguments = node.Method.GetGenericArguments();
+                var updated = false;
+                for (var i = 0; i < arguments.Length; i++)
+                {
+                    if (!TryUpdateAnonymousType(arguments[i], out var tupleInfo)) continue;
+                    arguments[i] = tupleInfo.Type;
+                    updated = true;
+                }
+
+                if (!updated) return base.VisitMethodCall(node);
+
+                var method = node.Method.GetGenericMethodDefinition().MakeGenericMethod(arguments);
+
+                return Expression.Call(Visit(node.Object), method, Visit(node.Arguments));
+            }
+
             protected override Expression VisitConstant(ConstantExpression node)
             {
                 if (!TryUpdateAnonymousType(node.Type, out var tupleInfo)) return base.VisitConstant(node);
@@ -76,7 +95,7 @@ namespace Qx.Client.Rewriters
                 return tupleInfo.GetNewExpression(arguments); ;
             }
 
-            private bool TryUpdateAnonymousType(Type type, [NotNullWhen(true)] out TupleInfo? tupleInfo )
+            private bool TryUpdateAnonymousType(Type type, [NotNullWhen(true)] out TupleInfo? tupleInfo)
             {
                 if (_tuples.TryGetValue(type, out var existingTupleInfo))
                 {
@@ -90,7 +109,7 @@ namespace Qx.Client.Rewriters
                 {
                     tupleInfo = default;
                     return false;
-                }            
+                }
 
                 var constructorParametersTypes = type.GetConstructors().Single().GetParameterTypes();
 
@@ -113,12 +132,12 @@ namespace Qx.Client.Rewriters
                     (tupleConversionDelegate ??= tupleConversionExpression.Compile()).DynamicInvoke(value), tupleType);
 
                 var tupleInfo_ = new TupleInfo(tupleType, CreateNew, CreateConstant);
-                
+
                 _tuples[type] = tupleInfo_;
                 tupleInfo = tupleInfo_;
                 return true;
             }
-            
+
             private static LambdaExpression CreateTupleConversionExpression(Type anonymousType, ConstructorInfo tupleConstructor)
             {
                 var existingConstantParameter = Expression.Parameter(anonymousType);

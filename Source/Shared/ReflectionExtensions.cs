@@ -18,6 +18,7 @@ namespace Qx.Internals
             };
 
         public static MethodInfo GetMethodInfo<TResult>(Expression<Func<TResult>> expression) => GetMethodInfo(expression.Body);
+        public static MethodInfo GetMethodInfo<TArg0, TResult>(Expression<Func<TArg0, TResult>> expression) => GetMethodInfo(expression.Body);
 
         private static MethodInfo GetMethodInfo(Expression expression) =>
             expression switch
