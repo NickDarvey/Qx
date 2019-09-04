@@ -4,5 +4,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/GlobalSuppressions.cs" Link="Properties/GlobalSuppressions.cs"/>
+    <Compile Include="../Shared/ExpressionHelpers.cs" Link="Helpers/ExpressionHelpers.cs"/>
   </ItemGroup>
 </Project>

@@ -2,7 +2,7 @@
 using System.Linq.Expressions;
 using Xunit;
 
-namespace Qx.Client.UnitTests
+namespace Qx.Client.UnitTests.Rewriters
 {
     public class PartialEvaluationRewriterTests
     {

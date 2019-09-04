@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Qx.Internals
 {
@@ -57,7 +58,7 @@ namespace Qx.Internals
         public static Type GetNonNullableType(this Type type) =>
             IsNullableType(type) ? type.GetGenericArguments()[0] : type;
 
-        public static Type[] GetParameterTypes(this MethodInfo method)
+        public static Type[] GetParameterTypes(this MethodBase method)
         {
             var parameters = method.GetParameters();
             var parameterTypes = new Type[parameters.Length];
@@ -65,7 +66,7 @@ namespace Qx.Internals
             return parameterTypes;
         }
 
-        public static bool TryGetDelegateTypes(Type type, [NotNullWhen(true)] out Type[]? parameterTypes, [NotNullWhen(true)] out Type? returnType)
+        public static bool TryGetDelegateTypes(this Type type, [NotNullWhen(true)] out Type[]? parameterTypes, [NotNullWhen(true)] out Type? returnType)
         {
             if (typeof(Delegate).IsAssignableFrom(type))
             {
@@ -79,5 +80,10 @@ namespace Qx.Internals
             returnType = default;
             return false;
         }
+
+        // https://stackoverflow.com/a/1650895/1259408
+        public static bool IsAnonymousType(this Type type) =>
+            (type.Name.StartsWith("<>f__AnonymousType", StringComparison.Ordinal) || type.Name.StartsWith("VB$AnonymousType", StringComparison.Ordinal))
+            && type.IsDefined(typeof(CompilerGeneratedAttribute), false);
     }
 }

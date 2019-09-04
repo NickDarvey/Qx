@@ -16,7 +16,7 @@ namespace Qx.Internals
                 return true;
             }
 
-            if (TryGetDelegateTypes(type, out _, out var returnType)
+            if (type.TryGetDelegateTypes(out _, out var returnType)
                 && IsKnownResourceType(returnType))
             {
                 resourceType = returnType;

@@ -14,7 +14,7 @@ Convert anonymous types in to tuples.
 
 
 ## Further problems
-* Nested anonymous types
+* Nested anonymous types. (Maybe I need some kinda TypeVisitor?)
 * Anonymous types with more than eight properties. (Can use 'rest' of a tuple, but argh.)
 * Empty anonymous types?
 * ConstantExpressions of anonymous types
