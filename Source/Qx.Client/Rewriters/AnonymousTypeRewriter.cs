@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 
 namespace Qx.Client.Rewriters
@@ -99,9 +100,12 @@ namespace Qx.Client.Rewriters
                 if (constructorParametersTypes.Length == 0)
                     throw new NotImplementedException($"Anonymous types with 0 properties are not supported, yet.");
 
+                if (constructorParametersTypes.Any(t => t.IsAnonymousType()))
+                    throw new NotImplementedException($"Anonymous types with nested anonymous types are not supported, yet.");
+
                 var tupleType = TupleTypes[constructorParametersTypes.Length].MakeGenericType(constructorParametersTypes);
                 var tupleConstructorInfo = tupleType.GetConstructor(constructorParametersTypes);
-                var tupleConversionExpression = CreateTupleConversionExpression(type, tupleType); // TODO
+                var tupleConversionExpression = CreateTupleConversionExpression(type, tupleConstructorInfo);
                 var tupleConversionDelegate = default(Delegate); // For caching, closed over in CreateConstant so it is only compiled once and only if needed
 
                 NewExpression CreateNew(ReadOnlyCollection<Expression> arguments) => Expression.New(tupleConstructorInfo, arguments);
@@ -115,12 +119,13 @@ namespace Qx.Client.Rewriters
                 return true;
             }
             
-            private static LambdaExpression CreateTupleConversionExpression(Type anonymousType, Type tupleType)
+            private static LambdaExpression CreateTupleConversionExpression(Type anonymousType, ConstructorInfo tupleConstructor)
             {
-                throw new NotImplementedException();
-                // get the properties of the anon type
-                // build member accessors for the properties
-                // build a new expresion and pass it the member accessors?
+                var existingConstantParameter = Expression.Parameter(anonymousType);
+                var properties = anonymousType.GetProperties();
+                var memberAccessors = new MemberExpression[properties.Length];
+                for (var i = 0; i < properties.Length; i++) memberAccessors[i] = Expression.MakeMemberAccess(existingConstantParameter, properties[i]);
+                return Expression.Lambda(Expression.New(tupleConstructor, memberAccessors), existingConstantParameter);
             }
         }
     }
