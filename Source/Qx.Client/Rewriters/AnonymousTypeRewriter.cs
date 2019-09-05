@@ -15,6 +15,7 @@ namespace Qx.Client.Rewriters
 
         private class Impl : ExpressionVisitor
         {
+            private delegate bool GenericArgumentUpdater<T>(Dictionary<Type, TupleInfo> tuples, T type, [NotNullWhen(true)] out T? replacedType) where T : class;
             private class EmptyTuple { }
 
             private static readonly Type[] TupleTypes = new[]
@@ -49,6 +50,9 @@ namespace Qx.Client.Rewriters
                 public Func<Expression, MemberInfo, MemberExpression> GetMemberExpression { get; }
             }
 
+            private static readonly GenericArgumentUpdater<Type> TryUpdateTypeArguments = CreateGenericArgumentUpdater<Type>(t => t.IsGenericType, t => t.GetGenericArguments(), (t, args) => t.GetGenericTypeDefinition().MakeGenericType(args));
+            private static readonly GenericArgumentUpdater<MethodInfo> TryUpdateMethodArguments = CreateGenericArgumentUpdater<MethodInfo>(m => m.IsGenericMethod, m => m.GetGenericArguments(), (m, args) => m.GetGenericMethodDefinition().MakeGenericMethod(args));
+
             /// <summary>
             /// Anonymous type to tuple mapping.
             /// </summary>
@@ -62,82 +66,77 @@ namespace Qx.Client.Rewriters
             /// </remarks>
             private Dictionary<ParameterExpression, ParameterExpression> ReplacedParameters { get; } = new Dictionary<ParameterExpression, ParameterExpression>();
 
-            protected override Expression VisitConstant(ConstantExpression node)
-            {
-                if (!TryUpdateAnonymousType(node.Type, out var tupleInfo)) return base.VisitConstant(node);
+            protected override Expression VisitConstant(ConstantExpression node) =>
+                TryUpdateAnonymousType(Tuples, node.Type, out var tupleInfo)
+                    ? tupleInfo.GetConstantExpression(node.Value)
+                    : base.VisitConstant(node);
 
-                return tupleInfo.GetConstantExpression(node.Value);
-            }
+            protected override Expression VisitLambda<T>(Expression<T> node) =>
+                TryUpdateTypeArguments(Tuples, node.Type, out var replacedType)
+                    ? Expression.Lambda(replacedType, Visit(node.Body), node.Name, node.TailCall, VisitAndConvert(node.Parameters, nameof(VisitLambda)))
+                    : base.VisitLambda(node);
 
-            protected override Expression VisitLambda<T>(Expression<T> node)
-            {
-                if(!node.Type.IsGenericType) return base.VisitLambda(node);
-                var arguments = node.Type.GetGenericArguments();
-                var updated = false;
-                for (int i = 0; i < arguments.Length; i++)
-                {
-                    if (!TryUpdateAnonymousType(arguments[i], out var tupleInfo)) continue;
-                    arguments[i] = tupleInfo.Type;
-                    updated = true;
-                }
+            protected override Expression VisitMember(MemberExpression node) =>
+                TryUpdateAnonymousType(Tuples, node.Expression.Type, out var tupleInfo)
+                    ? tupleInfo.GetMemberExpression(Visit(node.Expression), node.Member)
+                    : base.VisitMember(node);
 
-                if (!updated) return base.VisitLambda(node);
+            protected override Expression VisitMethodCall(MethodCallExpression node) =>
+                TryUpdateMethodArguments(Tuples, node.Method, out var replacedMethod)
+                    ? Expression.Call(Visit(node.Object), replacedMethod, Visit(node.Arguments))
+                    : base.VisitMethodCall(node);
 
-                var type = node.Type.GetGenericTypeDefinition().MakeGenericType(arguments);
-
-                return Expression.Lambda(type, Visit(node.Body), node.Name, node.TailCall, VisitAndConvert(node.Parameters, nameof(VisitLambda)));
-            }
-
-            protected override Expression VisitMember(MemberExpression node)
-            {
-                if (!TryUpdateAnonymousType(node.Expression.Type, out var tupleInfo)) return base.VisitMember(node);
-
-                var expression = Visit(node.Expression);
-
-                return tupleInfo.GetMemberExpression(expression, node.Member);
-            }
-
-            protected override Expression VisitMethodCall(MethodCallExpression node)
-            {
-                if (!node.Method.IsGenericMethod) return base.VisitMethodCall(node);
-                var arguments = node.Method.GetGenericArguments();
-                var updated = false;
-                for (var i = 0; i < arguments.Length; i++)
-                {
-                    if (!TryUpdateAnonymousType(arguments[i], out var tupleInfo)) continue;
-                    arguments[i] = tupleInfo.Type;
-                    updated = true;
-                }
-
-                if (!updated) return base.VisitMethodCall(node);
-
-                var method = node.Method.GetGenericMethodDefinition().MakeGenericMethod(arguments);
-
-                return Expression.Call(Visit(node.Object), method, Visit(node.Arguments));
-            }
-
-            protected override Expression VisitNew(NewExpression node)
-            {
-                if (!TryUpdateAnonymousType(node.Type, out var tupleInfo)) return base.VisitNew(node);
-
-                var arguments = Visit(node.Arguments);
-
-                return tupleInfo.GetNewExpression(arguments); ;
-            }
+            protected override Expression VisitNew(NewExpression node) =>
+                TryUpdateAnonymousType(Tuples, node.Type, out var tupleInfo)
+                    ? tupleInfo.GetNewExpression(Visit(node.Arguments))
+                    : base.VisitNew(node);
 
             protected override Expression VisitParameter(ParameterExpression node)
             {
                 if (ReplacedParameters.TryGetValue(node, out var existingParameter)) return existingParameter;
-                if (!TryUpdateAnonymousType(node.Type, out var tupleInfo)) return base.VisitParameter(node);
+                if (!TryUpdateAnonymousType(Tuples, node.Type, out var tupleInfo)) return base.VisitParameter(node);
 
                 var parameter = Expression.Parameter(tupleInfo.Type, node.Name);
                 ReplacedParameters[node] = parameter;
                 return parameter;
             }
 
-            private bool TryUpdateAnonymousType(Type type, [NotNullWhen(true)] out TupleInfo? tupleInfo)
+            private static GenericArgumentUpdater<T> CreateGenericArgumentUpdater<T>(Func<T, bool> isGeneric, Func<T, Type[]> getGenericArguments, Func<T, Type[], T> close) where T : class
             {
-                if (Tuples.TryGetValue(type, out var existingTupleInfo))
+                bool Updater(Dictionary<Type, TupleInfo> tuples, T value, out T? replacedValue) 
+                {
+                    if (!isGeneric(value))
+                    {
+                        replacedValue = default;
+                        return false;
+                    }
+
+                    var arguments = getGenericArguments(value);
+                    var updated = false;
+
+                    for (int i = 0; i < arguments.Length; i++)
+                    {
+                        if (!TryUpdateAnonymousType(tuples, arguments[i], out var tupleInfo)) continue;
+                        arguments[i] = tupleInfo.Type;
+                        updated = true;
+                    }
+
+                    if (!updated)
+                    {
+                        replacedValue = default;
+                        return false;
+                    }
+
+                    replacedValue = close(value, arguments);
+                    return true;
+                }
+
+                return Updater;
+            }
+
+            private static bool TryUpdateAnonymousType(Dictionary<Type, TupleInfo> tuples, Type type, [NotNullWhen(true)] out TupleInfo? tupleInfo)
+            {
+                if (tuples.TryGetValue(type, out var existingTupleInfo))
                 {
                     tupleInfo = existingTupleInfo;
                     return true;
@@ -181,7 +180,7 @@ namespace Qx.Client.Rewriters
 
                 var tupleInfo_ = new TupleInfo(tupleType, CreateNew, CreateConstant, CreateMember);
 
-                Tuples[type] = tupleInfo_;
+                tuples[type] = tupleInfo_;
                 tupleInfo = tupleInfo_;
                 return true;
             }
