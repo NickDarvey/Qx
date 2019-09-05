@@ -105,9 +105,7 @@ There's nothing special here, you can use an `Authorize` attribute or execute yo
 
 ### Anonymous types
 
-Anonymous types are used plenty with LINQ, but they are compiler-generated types of which your server will have no idea.
-I've opted to 'lower' them to tuples (see the `AnonymousTypeRewriter` for implementation), I'm not sure if that's the best approach but it seems to work.
-There are several limitations with the implementation as it stands:
+Anonymous types are lowered to tuples. (See [Anonymous Types](./Docs/Design/AnonymousTypes.md).) There are severe limitations with the implementation as it stands:
 * Anonymous types with more than seven properties are not yet supported. (I need to support using the 'Rest' parameter.)
 * Empty anonymous types are not yet supported. (I need to support some kind of unit type.)
 * Anonymous types with nested anonymous types are not yet supported. (I need to do some kinda recursion on the rewriting I guess.)
