@@ -76,6 +76,24 @@ namespace Qx.Client.UnitTests.Rewriters
             Assert.Equal(expected.ToString(), result.ToString());
         }
 
+        [Fact]
+        public void Should_rewrite_lambda_with_anonymous_type_parameter()
+        {
+            var originalValue = new { Name = "Cat" };
+            var originalConstant = Expression.Constant(originalValue);
+            var originalLambdaParameter = Expression.Parameter(originalConstant.Type);
+            var original = Expression.Lambda(Expression.MakeMemberAccess(originalLambdaParameter, GetMemberInfo(() => originalValue.Name)), originalLambdaParameter);
+            var expectedValue = new Tuple<string>("Cat");
+            var expectedConstant = Expression.Constant(expectedValue);
+            var expectedLambdaParameter = Expression.Parameter(expectedConstant.Type);
+            var expected = Expression.Lambda(Expression.MakeMemberAccess(expectedLambdaParameter, GetMemberInfo(() => expectedValue.Item1)), expectedLambdaParameter);
+
+            var result = Rewrite(original);
+
+            Assert.Equal(expected.ToString(), result.ToString());
+            Assert.Equal(expected.Compile().DynamicInvoke(expectedValue), ((LambdaExpression)result).Compile().DynamicInvoke(expectedValue));
+        }
+
         private static class TestClass
         {
             public static T Echo<T>(T whatever) => whatever;

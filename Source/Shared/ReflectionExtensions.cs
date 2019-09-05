@@ -14,6 +14,7 @@ namespace Qx.Internals
             expression switch
             {
                 MethodCallExpression methodCall => methodCall.Method,
+                MemberExpression member => member.Member,
                 _ => throw new NotSupportedException($"{expression.GetType().Name} does not contain a MethodInfo"),
             };
 
