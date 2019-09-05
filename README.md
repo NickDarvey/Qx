@@ -68,47 +68,10 @@ This is the easiest way to get going though it has some defaults which you might
 If want a little more customization, you can use the underlying `CompileEnumerableQuery` and `CompileExecutableQuery` function calls yourself.
 You can use this to build your own kind of `QueryableHub<THub>` (with your own endpoint names) or you can use this if you're avoiding ASP.NET's dependency injection.
 
-
-## Security
-### Verification
-
-Qx clients are sending code as data which should be an immediate red flag.
-The safety comes with the verification of a query that ensures only explicitly allowed features and explictly allowed members (i.e. types, methods, properties, etc.) are contained within the query.
-There are predefined groups of members which you can use to allow things like commonly used (but non-buffering) operators, and primitive types and their methods.
-
-See also Limitations.
-
-### Authorization
-
-Qx allows for authorization to be handled per stream. If a query specifies stream 'A' and 'B' then the user needs access to both streams.
-There's nothing special here, you can use an `Authorize` attribute or execute your own authorization logic as you would normally on a Hub stream method.
-
-## Limitations
-
-### Integration with SignalR
-
-The integration with SignalR is uhh- lacking. If they add new features, they'll need to be added in Qx too.
-A lot of the behaviour needed for a neater integration is encapsulated within SignalR's DefaultHubDispatcher and I'm not familiar enough with it to begin suggesting an alternate design.
-What we have now is pretty much a reimplementation of some of that dispatch behaviour.
-
-### Security
-
-#### Verification
-Right now members are allowed or they are not, they aren't constrained in any way. This means if you allow something like `AsyncEnumerable.Range` someone could supply `AsyncEnumerable.Range(0, int.Max)`.
-
-There has been no security audit of the query verification or its defaults. I would wait till then before using this in a public-facing API.
-
-#### Authorization
-
-Qx allows for authorization to be handled per stream. If a query specifies stream 'A' and 'B' then the user needs access to both streams.
-There's nothing special here, you can use an `Authorize` attribute or execute your own authorization logic as you would normally on a Hub stream method.
-
-### Anonymous types
-
-Anonymous types are lowered to tuples. (See [Anonymous Types](./Docs/Design/AnonymousTypes.md).) There are severe limitations with the implementation as it stands:
-* Anonymous types with more than seven properties are not yet supported. (I need to support using the 'Rest' parameter.)
-* Empty anonymous types are not yet supported. (I need to support some kind of unit type.)
-* Anonymous types with nested anonymous types are not yet supported. (I need to do some kinda recursion on the rewriting I guess.)
+## Design Documentation
+* [Anonymous Types](./Docs/Design/AnonymousTypes.md)
+* [Security](./Docs/Design/Security.md)
+* [SignalR](./Docs/Design/SignalR.md)
 
 ## To-do
 
