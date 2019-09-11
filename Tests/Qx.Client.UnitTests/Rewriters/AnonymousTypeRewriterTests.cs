@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using Xunit;
-using static Qx.Client.Rewriters.AnonymousTypeRewriter2;
+using static Qx.Client.Rewriters.AnonymousTypeRewriter;
 using static Qx.Helpers.ExpressionHelpers;
 using static Qx.Internals.ReflectionExtensions;
 

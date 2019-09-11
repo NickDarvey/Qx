@@ -13,5 +13,4 @@ Our approach is to convert anonymous types to tuples. See implementation in `Ano
 ## Limitations
 * Anonymous types with more than seven properties are not yet supported. (I need to support using the 'Rest' parameter.)
 * Empty anonymous types are not yet supported. (I need to support some kind of unit type.)
-* Anonymous types with nested anonymous types are not yet supported. (I need to do some kinda recursion on the rewriting I guess.)
 * Outer result might still need to be an anonymous type as it is used in the client application.

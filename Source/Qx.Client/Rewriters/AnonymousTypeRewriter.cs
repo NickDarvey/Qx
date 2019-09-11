@@ -6,223 +6,209 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
 
 namespace Qx.Client.Rewriters
 {
-    internal static class AnonymousTypeRewriter
+    public static class AnonymousTypeRewriter
     {
-        public static Expression Rewrite(Expression expression) => new Impl().Visit(expression);
+        public static Expression Rewrite(Expression expression) =>
+            new TuplifyingExpressionVisitor().Visit(expression);
 
-        private class Impl : ExpressionVisitor
+        private class EmptyTuple { }
+
+        private static readonly Type[] TupleTypes = new[]
         {
-            private delegate bool GenericArgumentUpdater<T>(Dictionary<Type, TupleInfo> tuples, T type, [NotNullWhen(true)] out T? replacedType) where T : class;
-            private class EmptyTuple { }
+            typeof(EmptyTuple), // So we can index by the length of type parameters
+            typeof(Tuple<>),    // e.g. this is 1 type parameter and it is at index 1
+            typeof(Tuple<,>),
+            typeof(Tuple<,,>),
+            typeof(Tuple<,,,>),
+            typeof(Tuple<,,,,>),
+            typeof(Tuple<,,,,,>),
+            typeof(Tuple<,,,,,,>),
+        };
 
-            private static readonly Type[] TupleTypes = new[]
+        private class TupleInfo
+        {
+            public TupleInfo(
+                Type type,
+                LambdaExpression conversionDelegate,
+                Func<object, ConstantExpression> constantExpressionFactory,
+                Func<ReadOnlyCollection<Expression>, NewExpression> newExpressionFactory,
+                Func<Expression, MemberInfo, MemberExpression> memberExpressionFactory)
             {
-                typeof(EmptyTuple), // So we can index by the length of type parameters
-                typeof(Tuple<>),    // e.g. this is 1 type parameter and it is at index 1
-                typeof(Tuple<,>),
-                typeof(Tuple<,,>),
-                typeof(Tuple<,,,>),
-                typeof(Tuple<,,,,>),
-                typeof(Tuple<,,,,,>),
-                typeof(Tuple<,,,,,,>),
-            };
-
-            private class TupleInfo
-            {
-                public TupleInfo(
-                    Type type,
-                    Func<ReadOnlyCollection<Expression>, NewExpression> newExpressionFactory,
-                    Func<object, ConstantExpression> constantExpressionFactory,
-                    Func<Expression, MemberInfo, MemberExpression> memberExpressionFactory)
-                {
-                    Type = type;
-                    GetNewExpression = newExpressionFactory;
-                    GetConstantExpression = constantExpressionFactory;
-                    GetMemberExpression = memberExpressionFactory;
-                }
-
-                public Type Type { get; }
-                public Func<ReadOnlyCollection<Expression>, NewExpression> GetNewExpression { get; }
-                public Func<object, ConstantExpression> GetConstantExpression { get; }
-                public Func<Expression, MemberInfo, MemberExpression> GetMemberExpression { get; }
+                Type = type;
+                ConversionDelegate = conversionDelegate;
+                GetConstantExpression = constantExpressionFactory;
+                GetNewExpression = newExpressionFactory;
+                GetMemberExpression = memberExpressionFactory;
             }
 
-            //private class AnonymousTypeScanner : TypeVisitor
-            //{
-            //    public override Type Visit(Type type)
-            //    {
-            //        if (type.IsGenericTypeDefinition == false && type.IsAnonymousType()) AnonymousTypes.Add(type);
-            //        return base.Visit(type);
-            //    }
+            public Type Type { get; }
+            public LambdaExpression ConversionDelegate { get; }
+            public Func<object, ConstantExpression> GetConstantExpression { get; }
+            public Func<ReadOnlyCollection<Expression>, NewExpression> GetNewExpression { get; }
+            public Func<Expression, MemberInfo, MemberExpression> GetMemberExpression { get; }
 
-            //    public List<Type> AnonymousTypes { get; } = new List<Type>();
-            //}
+        }
 
-            private static readonly GenericArgumentUpdater<Type> TryUpdateTypeArguments =
-                CreateGenericArgumentUpdater<Type>(t => t.IsGenericType, t => t.GetGenericArguments(), (t, args) => t.GetGenericTypeDefinition().MakeGenericType(args));
+        /// <summary>
+        /// Visits a type and collects <see cref="TupleInfo"/> for any nested anonymous types.
+        /// </summary>
+        private class TuplifyingTypeVisitor : TypeVisitor
+        {
+            public TuplifyingTypeVisitor() => Tuples = new Dictionary<Type, TupleInfo>();
 
-            private static readonly GenericArgumentUpdater<MethodInfo> TryUpdateMethodArguments =
-                CreateGenericArgumentUpdater<MethodInfo>(m => m.IsGenericMethod, m => m.GetGenericArguments(), (m, args) => m.GetGenericMethodDefinition().MakeGenericMethod(args));
+            /// <param name="tuples"><see cref="Tuples"/></param>
+            public TuplifyingTypeVisitor(Dictionary<Type, TupleInfo> tuples) => Tuples = tuples;
 
             /// <summary>
-            /// Anonymous type to tuple mapping.
+            /// Maps an anonymous type to tuple info.
             /// </summary>
-            private Dictionary<Type, TupleInfo> Tuples { get; } = new Dictionary<Type, TupleInfo>();
+            public Dictionary<Type, TupleInfo> Tuples { get; }
+
+            public override Type Visit(Type type)
+            {
+                if (Tuples.TryGetValue(type, out var tupleInfo)) return tupleInfo.Type;
+                if (type.IsAnonymousType() == false) return base.Visit(type);
+
+                var existingConstantParameter = Expression.Parameter(type);
+
+                var anonymousTypeProperties = type.GetProperties();
+                var tuplePropertyTypes = new Type[anonymousTypeProperties.Length];
+                var anonymousTypePropertyAccessors = new Expression[anonymousTypeProperties.Length];
+                var tuplePropertyAccessors = new Dictionary<MemberInfo, PropertyInfo>(anonymousTypeProperties.Length);
+                for (var i = 0; i < anonymousTypeProperties.Length; i++)
+                {
+                    var anonymousTypeProperty = anonymousTypeProperties[i];
+                    tuplePropertyTypes[i] = Visit(anonymousTypeProperty.PropertyType);
+
+                    var propertyAccessor = Expression.MakeMemberAccess(existingConstantParameter, anonymousTypeProperty);
+                    anonymousTypePropertyAccessors[i] = Tuples.TryGetValue(anonymousTypeProperty.PropertyType, out var propertyTupleInfo) // We just visited, can we remove this look-up?
+                        ? Expression.Invoke(propertyTupleInfo.ConversionDelegate, propertyAccessor)
+                        : (Expression)propertyAccessor;
+                }
+
+
+                var tupleType = TupleTypes[tuplePropertyTypes.Length].MakeGenericType(tuplePropertyTypes);
+                var tupleProperties = tupleType.GetProperties();
+                for (int i = 0; i < tupleProperties.Length; i++) tuplePropertyAccessors[anonymousTypeProperties[i]] = tupleProperties[i];
+                var tupleConstructorInfo = tupleType.GetConstructor(tuplePropertyTypes);
+                var tupleConversionDelegate = Expression.Lambda(Expression.New(tupleConstructorInfo, anonymousTypePropertyAccessors), existingConstantParameter);
+                var tupleConversionDelegateCache = default(Delegate); // For caching, closed over in CreateConstant so it is only compiled once and only if needed
+
+                ConstantExpression CreateConstant(object value) =>
+                    Expression.Constant((tupleConversionDelegateCache ??= tupleConversionDelegate.Compile()).DynamicInvoke(value));
+
+                NewExpression CreateNew(ReadOnlyCollection<Expression> arguments) =>
+                    Expression.New(tupleConstructorInfo, arguments);
+
+                MemberExpression CreateMember(Expression expression, MemberInfo member) =>
+                     Expression.MakeMemberAccess(expression, tuplePropertyAccessors[member]);
+
+                Tuples[type] = new TupleInfo(tupleType, tupleConversionDelegate, CreateConstant, CreateNew, CreateMember);
+
+                return tupleType;
+            }
+        }
+
+        private class TuplifyingExpressionVisitor : ExpressionVisitor
+        {
+            /// <summary>
+            /// Maps a type containing an anonymous type to a type containing a tuple.
+            /// </summary>
+            /// <example>
+            /// IEnumerable{AnonymousType1} -> IEnumerable{Tuple1}
+            /// AnonymousType2 -> Tuple2
+            /// </example>
+            private readonly Dictionary<Type, Type?> _types = new Dictionary<Type, Type?>();
 
             /// <summary>
-            /// Parameter to replaced parameter mapping.
+            /// Maps an existing parameter to a replacement parameter.
             /// </summary>
             /// <remarks>
             /// ParameterExpressions need to be reference-equal so we need to re-use the ParameterExpressions we replace.
             /// </remarks>
-            private Dictionary<ParameterExpression, ParameterExpression> ReplacedParameters { get; } = new Dictionary<ParameterExpression, ParameterExpression>();
+            private readonly Dictionary<ParameterExpression, ParameterExpression> _parameters = new Dictionary<ParameterExpression, ParameterExpression>();
+
+            private readonly TuplifyingTypeVisitor _visitor = new TuplifyingTypeVisitor();
 
             protected override Expression VisitConstant(ConstantExpression node) =>
-                TryUpdateAnonymousType(Tuples, node.Type, out var tupleInfo)
+                TryGetTupleInfo(node.Type, out var tupleInfo)
                     ? tupleInfo.GetConstantExpression(node.Value)
                     : base.VisitConstant(node);
 
             protected override Expression VisitLambda<T>(Expression<T> node) =>
-                TryUpdateTypeArguments(Tuples, node.Type, out var replacedType)
-                    ? Expression.Lambda(replacedType, Visit(node.Body), node.Name, node.TailCall, VisitAndConvert(node.Parameters, nameof(VisitLambda)))
+                TryGetTupleType(node.Type, out var tupleType)
+                    ? Expression.Lambda(tupleType, Visit(node.Body), node.Name, node.TailCall, VisitAndConvert(node.Parameters, nameof(VisitLambda)))
                     : base.VisitLambda(node);
 
             protected override Expression VisitMember(MemberExpression node) =>
-                TryUpdateAnonymousType(Tuples, node.Expression.Type, out var tupleInfo)
+                TryGetTupleInfo(node.Expression.Type, out var tupleInfo)
                     ? tupleInfo.GetMemberExpression(Visit(node.Expression), node.Member)
                     : base.VisitMember(node);
 
             protected override Expression VisitMethodCall(MethodCallExpression node) =>
-                TryUpdateMethodArguments(Tuples, node.Method, out var replacedMethod)
-                    ? Expression.Call(Visit(node.Object), replacedMethod, Visit(node.Arguments))
+                TryGetTupleMethod(node.Method, out var tupleMethod)
+                    ? Expression.Call(Visit(node.Object), tupleMethod, Visit(node.Arguments))
                     : base.VisitMethodCall(node);
 
             protected override Expression VisitNew(NewExpression node) =>
-                TryUpdateAnonymousType(Tuples, node.Type, out var tupleInfo)
+                TryGetTupleInfo(node.Type, out var tupleInfo)
                     ? tupleInfo.GetNewExpression(Visit(node.Arguments))
                     : base.VisitNew(node);
 
-            protected override Expression VisitParameter(ParameterExpression node)
-            {
-                if (ReplacedParameters.TryGetValue(node, out var existingParameter)) return existingParameter;
-                if (!TryUpdateAnonymousType(Tuples, node.Type, out var tupleInfo)) return base.VisitParameter(node);
+            protected override Expression VisitParameter(ParameterExpression node) =>
+                _parameters.TryGetValue(node, out var existingParameter) ? existingParameter
+                : TryGetTupleType(node.Type, out var replacedType) ? _parameters[node] = Expression.Parameter(replacedType, node.Name)
+                : base.VisitParameter(node);
 
-                var parameter = Expression.Parameter(tupleInfo.Type, node.Name);
-                ReplacedParameters[node] = parameter;
-                return parameter;
-            }
-
-            private static GenericArgumentUpdater<T> CreateGenericArgumentUpdater<T>(Func<T, bool> isGeneric, Func<T, Type[]> getGenericArguments, Func<T, Type[], T> close) where T : class
+            private bool TryGetTupleType(Type type, [NotNullWhen(true)] out Type? tupleType)
             {
-                bool Updater(Dictionary<Type, TupleInfo> tuples, T value, out T? replacedValue)
+                if (_types.TryGetValue(type, out tupleType)) return tupleType != default;
+
+                var visited = _visitor.Visit(type);
+
+                if (type == visited)
                 {
-                    if (!isGeneric(value))
-                    {
-                        replacedValue = default;
-                        return false;
-                    }
-
-                    var arguments = getGenericArguments(value);
-                    var updated = false;
-
-                    for (int i = 0; i < arguments.Length; i++)
-                    {
-                        if (!TryUpdateAnonymousType(tuples, arguments[i], out var tupleInfo)) continue;
-                        arguments[i] = tupleInfo.Type;
-                        updated = true;
-                    }
-
-                    if (!updated)
-                    {
-                        replacedValue = default;
-                        return false;
-                    }
-
-                    replacedValue = close(value, arguments);
-                    return true;
+                    _types[type] = default;
+                    return false;
                 }
 
-                return Updater;
-            }
-
-            // TODO
-            // Update tuple dict to have an optional tuple info so we can mark when we already know the type is not to be replaced
-            // create a type visitor to walk the type tree (e.g. dive into closed generic args) -- stop walking recursive types?
-            // 
-            private static bool TryUpdateAnonymousType(Dictionary<Type, TupleInfo> tuples, Type type, [NotNullWhen(true)] out TupleInfo? tupleInfo)
-            {
-                if (tuples.TryGetValue(type, out var existingTupleInfo))
+                else
                 {
-                    tupleInfo = existingTupleInfo;
+                    _types[type] = visited;
+                    tupleType = visited;
                     return true;
                 }
+            }
 
-                if (type == null ||
-                    type.IsGenericTypeDefinition ||
-                    type.IsAnonymousType() == false)
+            private bool TryGetTupleInfo(Type type, [NotNullWhen(true)] out TupleInfo? tupleInfo)
+            {
+                if (TryGetTupleType(type, out _) && _visitor.Tuples.TryGetValue(type, out tupleInfo)) return true;
+                else
                 {
                     tupleInfo = default;
                     return false;
                 }
+            }
 
-                var constructorParameters = type.GetConstructors().Single().GetParameters();
-                var propertyNames = new string[constructorParameters.Length];
-                var propertyTypes = new Type[constructorParameters.Length];
-                for (int i = 0; i < constructorParameters.Length; i++)
+            private bool TryGetTupleMethod(MethodInfo method, [NotNullWhen(true)] out MethodInfo? tupleMethod)
+            {
+                if (method.IsGenericMethod)
                 {
-                    propertyNames[i] = constructorParameters[i].Name;
-                    propertyTypes[i] = constructorParameters[i].ParameterType;
+                    var arguments = method.GetGenericArguments();
+                    var visitedArguments = _visitor.Visit(arguments);
+                    if (visitedArguments != arguments)
+                    {
+                        tupleMethod = method.GetGenericMethodDefinition().MakeGenericMethod(visitedArguments);
+                        return true;
+                    }
                 }
 
-                if (propertyTypes.Length >= TupleTypes.Length)
-                    throw new NotImplementedException($"Anonymous types with  >{TupleTypes.Length} properties are not supported, yet.");
-
-                if (propertyTypes.Length == 0)
-                    throw new NotImplementedException($"Anonymous types with 0 properties are not supported, yet.");
-
-                if (propertyTypes.Any(t => t.IsAnonymousType()))
-                    throw new NotImplementedException(
-                        "Anonymous types with nested anonymous types are not supported, yet." + Environment.NewLine +
-                        "Offending type: " + type.Name + Environment.NewLine +
-                        "with properties: " + Environment.NewLine +
-                        string.Join(Environment.NewLine, propertyTypes.Select(t => t.Name)));
-
-                var tupleType = TupleTypes[propertyTypes.Length].MakeGenericType(propertyTypes);
-                var tupleConstructorInfo = tupleType.GetConstructor(propertyTypes);
-                var tupleMemberAccessors = CreateTupleMemberAccessors(type, tupleType); // TODO: Some smarts so that we only fetch the properties once
-                var tupleConversionDelegateCache = default(Delegate); // For caching, closed over in CreateConstant so it is only compiled once and only if needed
-
-                NewExpression CreateNew(ReadOnlyCollection<Expression> arguments) => Expression.New(tupleConstructorInfo, arguments);
-                ConstantExpression CreateConstant(object value) => Expression.Constant(
-                    (tupleConversionDelegateCache ??= CreateTupleConversionExpression(type, tupleConstructorInfo).Compile()).DynamicInvoke(value), tupleType);
-                MemberExpression CreateMember(Expression expression, MemberInfo member) => Expression.MakeMemberAccess(expression, tupleMemberAccessors[member]);
-
-                var tupleInfo_ = new TupleInfo(tupleType, CreateNew, CreateConstant, CreateMember);
-
-                tuples[type] = tupleInfo_;
-                tupleInfo = tupleInfo_;
-                return true;
-            }
-
-            private static LambdaExpression CreateTupleConversionExpression(Type anonymousType, ConstructorInfo tupleConstructor)
-            {
-                var existingConstantParameter = Expression.Parameter(anonymousType);
-                var properties = anonymousType.GetProperties();
-                var memberAccessors = new MemberExpression[properties.Length];
-                for (var i = 0; i < properties.Length; i++) memberAccessors[i] = Expression.MakeMemberAccess(existingConstantParameter, properties[i]);
-                return Expression.Lambda(Expression.New(tupleConstructor, memberAccessors), existingConstantParameter);
-            }
-
-            private static Dictionary<MemberInfo, PropertyInfo> CreateTupleMemberAccessors(Type anonymousType, Type tupleType)
-            {
-                var result = new Dictionary<MemberInfo, PropertyInfo>();
-                var anonymousTypeProperties = anonymousType.GetProperties();
-                var tupleTypeProperties = tupleType.GetProperties();
-                for (int i = 0; i < anonymousTypeProperties.Length; i++) result.Add(anonymousTypeProperties[i], tupleTypeProperties[i]);
-                return result;
+                tupleMethod = default;
+                return false;
             }
         }
     }

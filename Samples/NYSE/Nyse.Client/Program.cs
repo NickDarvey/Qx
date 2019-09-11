@@ -61,12 +61,20 @@ namespace Nyse.Client
                 // Get the market cap
                 .SelectMany(sp => client.GetEnumerable<SharesOutstanding>("SharesOutstanding")
                     .Where(so => so.Symbol == sp.Symbol)
-                    .Select(so => ValueTuple.Create(so.Symbol, sp.Price * so.Count)))
+                    .Select(so => new { so.Symbol, MarketCap = sp.Price * so.Count }))
 
                 // Find the name
                 .SelectMany(mc => client.GetEnumerable<Listing>("Listings")
-                    .Where(ls => ls.Symbol == mc.Item1)
-                    .Select(ls => ValueTuple.Create(mc.Item1, ls.Name, mc.Item2)));
+                    .Where(ls => ls.Symbol == mc.Symbol)
+                    .Select(ls => ValueTuple.Create(mc.Symbol, ls.Name, mc.MarketCap)));
+
+            var query2 = from sp in client.GetEnumerable<SharePrice>("SharePrices")
+                         where sp.Symbol == "MSFT"
+                         from so in client.GetEnumerable<SharesOutstanding>("SharesOutstanding")
+                         where so.Symbol == sp.Symbol
+                         from ls in client.GetEnumerable<Listing>("Listings")
+                         where ls.Symbol == sp.Symbol
+                         select ValueTuple.Create(ls.Symbol, ls.Name, sp.Price * so.Count);
 
             await foreach (var element in query)
             {
