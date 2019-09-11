@@ -48,7 +48,7 @@ namespace Qx.Client
                 _base.GetAsyncResult<T>(Normalize(expression), token);
 
             private Expression Normalize(Expression expression) =>
-                PartialEvaluationRewriter.Rewrite(ClientCallRewriter.Rewrite(expression));
+                AnonymousTypeRewriter.Rewrite(PartialEvaluationRewriter.Rewrite(ClientCallRewriter.Rewrite(expression)));
         }
     }
 }

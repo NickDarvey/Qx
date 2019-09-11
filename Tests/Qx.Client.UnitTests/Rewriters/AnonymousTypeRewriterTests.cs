@@ -1,8 +1,10 @@
 ﻿using Qx.Internals;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using Xunit;
-using static Qx.Client.Rewriters.AnonymousTypeRewriter;
+using static Qx.Client.Rewriters.AnonymousTypeRewriter2;
 using static Qx.Helpers.ExpressionHelpers;
 using static Qx.Internals.ReflectionExtensions;
 
@@ -37,6 +39,17 @@ namespace Qx.Client.UnitTests.Rewriters
         {
             var original = Expression.Constant(new { Name = "Cat" });
             var expected = Expression.Constant(new Tuple<string>("Cat"));
+
+            var result = Rewrite(original);
+
+            Assert.Equal(expected.ToString(), result.ToString());
+        }
+
+        [Fact]
+        public void Should_rewrite_constant_with_nested_type()
+        {
+            var original = Expression.Constant(new { Name = "Cat", Place = new { Location = "House", Room = "Unknown" } });
+            var expected = Expression.Constant(new Tuple<string, Tuple<string, string>>("Cat", new Tuple<string, string>("House", "Unknown")));
 
             var result = Rewrite(original);
 
@@ -92,6 +105,19 @@ namespace Qx.Client.UnitTests.Rewriters
 
             Assert.Equal(expected.ToString(), result.ToString());
             Assert.Equal(expected.Compile().DynamicInvoke(expectedValue), ((LambdaExpression)result).Compile().DynamicInvoke(expectedValue));
+        }
+
+        [Fact]
+        public void Should_rewrite_lambda_with_nested_anonymous_type_parameter()
+        {
+            var original = Expr(() => TestClass.Select(new { Name = "Cat", Place = new { Location = "House", Room = "Unknown" } }, v => v.Place.Room));
+            var expected = Expr(() => TestClass.Select(new Tuple<string, Tuple<string, string>>("Cat", new Tuple<string, string>("House", "Unknown")), v => v.Item2.Item2));
+
+            var result = Rewrite(original);
+
+            Assert.Equal(expected.ToString(), result.ToString());
+            Assert.Equal(expected.Compile().DynamicInvoke(), ((LambdaExpression)result).Compile().DynamicInvoke());
+
         }
 
         private static class TestClass

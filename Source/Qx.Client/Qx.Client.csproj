@@ -13,5 +13,6 @@
   <ItemGroup>
     <Compile Include="../Shared/ReflectionExtensions.cs" Link="Internals/ReflectionExtensions.cs" />
     <Compile Include="../Shared/KnownResourceExtensions.cs" Link="Internals/KnownResourceExtensions.cs" />
+    <Compile Include="../Shared/TypeVisitor.cs" Link="Internals/TypeVisitor.cs" />
   </ItemGroup>
 </Project>

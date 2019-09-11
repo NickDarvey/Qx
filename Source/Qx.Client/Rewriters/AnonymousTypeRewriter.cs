@@ -50,8 +50,22 @@ namespace Qx.Client.Rewriters
                 public Func<Expression, MemberInfo, MemberExpression> GetMemberExpression { get; }
             }
 
-            private static readonly GenericArgumentUpdater<Type> TryUpdateTypeArguments = CreateGenericArgumentUpdater<Type>(t => t.IsGenericType, t => t.GetGenericArguments(), (t, args) => t.GetGenericTypeDefinition().MakeGenericType(args));
-            private static readonly GenericArgumentUpdater<MethodInfo> TryUpdateMethodArguments = CreateGenericArgumentUpdater<MethodInfo>(m => m.IsGenericMethod, m => m.GetGenericArguments(), (m, args) => m.GetGenericMethodDefinition().MakeGenericMethod(args));
+            //private class AnonymousTypeScanner : TypeVisitor
+            //{
+            //    public override Type Visit(Type type)
+            //    {
+            //        if (type.IsGenericTypeDefinition == false && type.IsAnonymousType()) AnonymousTypes.Add(type);
+            //        return base.Visit(type);
+            //    }
+
+            //    public List<Type> AnonymousTypes { get; } = new List<Type>();
+            //}
+
+            private static readonly GenericArgumentUpdater<Type> TryUpdateTypeArguments =
+                CreateGenericArgumentUpdater<Type>(t => t.IsGenericType, t => t.GetGenericArguments(), (t, args) => t.GetGenericTypeDefinition().MakeGenericType(args));
+
+            private static readonly GenericArgumentUpdater<MethodInfo> TryUpdateMethodArguments =
+                CreateGenericArgumentUpdater<MethodInfo>(m => m.IsGenericMethod, m => m.GetGenericArguments(), (m, args) => m.GetGenericMethodDefinition().MakeGenericMethod(args));
 
             /// <summary>
             /// Anonymous type to tuple mapping.
@@ -103,7 +117,7 @@ namespace Qx.Client.Rewriters
 
             private static GenericArgumentUpdater<T> CreateGenericArgumentUpdater<T>(Func<T, bool> isGeneric, Func<T, Type[]> getGenericArguments, Func<T, Type[], T> close) where T : class
             {
-                bool Updater(Dictionary<Type, TupleInfo> tuples, T value, out T? replacedValue) 
+                bool Updater(Dictionary<Type, TupleInfo> tuples, T value, out T? replacedValue)
                 {
                     if (!isGeneric(value))
                     {
@@ -134,6 +148,10 @@ namespace Qx.Client.Rewriters
                 return Updater;
             }
 
+            // TODO
+            // Update tuple dict to have an optional tuple info so we can mark when we already know the type is not to be replaced
+            // create a type visitor to walk the type tree (e.g. dive into closed generic args) -- stop walking recursive types?
+            // 
             private static bool TryUpdateAnonymousType(Dictionary<Type, TupleInfo> tuples, Type type, [NotNullWhen(true)] out TupleInfo? tupleInfo)
             {
                 if (tuples.TryGetValue(type, out var existingTupleInfo))
@@ -166,7 +184,11 @@ namespace Qx.Client.Rewriters
                     throw new NotImplementedException($"Anonymous types with 0 properties are not supported, yet.");
 
                 if (propertyTypes.Any(t => t.IsAnonymousType()))
-                    throw new NotImplementedException($"Anonymous types with nested anonymous types are not supported, yet.");
+                    throw new NotImplementedException(
+                        "Anonymous types with nested anonymous types are not supported, yet." + Environment.NewLine +
+                        "Offending type: " + type.Name + Environment.NewLine +
+                        "with properties: " + Environment.NewLine +
+                        string.Join(Environment.NewLine, propertyTypes.Select(t => t.Name)));
 
                 var tupleType = TupleTypes[propertyTypes.Length].MakeGenericType(propertyTypes);
                 var tupleConstructorInfo = tupleType.GetConstructor(propertyTypes);
