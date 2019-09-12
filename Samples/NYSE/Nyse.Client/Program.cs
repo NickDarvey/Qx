@@ -76,7 +76,7 @@ namespace Nyse.Client
                          where ls.Symbol == sp.Symbol
                          select ValueTuple.Create(ls.Symbol, ls.Name, sp.Price * so.Count);
 
-            await foreach (var element in query)
+            await foreach (var element in query2)
             {
                 Console.WriteLine($"{element.Item2} ({element.Item1}): {element.Item3.ToString("C")}");
             }

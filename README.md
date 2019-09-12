@@ -11,18 +11,13 @@ If you've used LINQ before, particularly if you've used LINQ with IQueryables (L
 ```csharp
 var client = await QxAsyncQueryClient.ConnectAsync("http://localhost:60591/queryable-shares");
 
-var query = client.GetEnumerable<SharePrice>("SharePrices")
-    .Where(sp => sp.Symbol == "MSFT")
-
-    // Get the market cap
-    .SelectMany(sp => client.GetEnumerable<SharesOutstanding>("SharesOutstanding")
-        .Where(so => so.Symbol == sp.Symbol)
-        .Select(so => ValueTuple.Create(so.Symbol, sp.Price * so.Count)))
-
-    // Find the name
-    .SelectMany(mc => client.GetEnumerable<Listing>("Listings")
-        .Where(ls => ls.Symbol == mc.Item1)
-        .Select(ls => ValueTuple.Create(mc.Item1, ls.Name, mc.Item2)));
+var query = from sp in client.GetEnumerable<SharePrice>("SharePrices")
+            where sp.Symbol == "MSFT"
+            from so in client.GetEnumerable<SharesOutstanding>("SharesOutstanding")
+            where so.Symbol == sp.Symbol
+            from ls in client.GetEnumerable<Listing>("Listings")
+            where ls.Symbol == sp.Symbol
+            select ValueTuple.Create(ls.Symbol, ls.Name, sp.Price * so.Count);
 
 await foreach (var element in query)
 {
