@@ -32,7 +32,8 @@ namespace Qx.Security
                 // If it's a type then the type args must also match
                 : x is Type tx && y is Type ty && tx.GetGenericArguments().SequenceEqual(ty.GetGenericArguments()) == false ? false
                 // If it's a method or constructor then the type args must also match
-                : x is MethodBase mx && y is MethodBase my && mx.GetGenericArguments().SequenceEqual(my.GetGenericArguments()) == false ? false
+                : x is MethodBase mx && y is MethodBase my && mx.DeclaringType.GetGenericArguments().SequenceEqual(my.DeclaringType.GetGenericArguments()) == false ? false
+                : x is MethodInfo mmx && y is MethodInfo mmy && mmx.GetGenericArguments().SequenceEqual(mmy.GetGenericArguments()) == false ? false
                 // If we've got this far, they match
                 : true;
 
@@ -62,9 +63,19 @@ namespace Qx.Security
                 && method.IsGenericMethodDefinition == false // Would this ever be in an expression tree?
                 && members_.Contains(method.GetGenericMethodDefinition());
 
-            return m => members_.Contains(m)
-                     || m is Type type && VerifyType(type)
-                     || m is MethodInfo method && VerifyMethod(method);
+            bool VerifyConstructor(ConstructorInfo constructor) =>
+                constructor.DeclaringType.IsGenericType
+                && members_.Contains(MethodBase.GetMethodFromHandle(
+                    constructor.MethodHandle,
+                    constructor.DeclaringType.GetGenericTypeDefinition().TypeHandle));
+
+            bool Verify(MemberInfo member) =>
+                members_.Contains(member)
+                || member is Type type && VerifyType(type)
+                || member is MethodInfo method && VerifyMethod(method)
+                || member is ConstructorInfo constructor && VerifyConstructor(constructor);
+
+            return Verify;
         }
 
         private static readonly HashSet<string> _declaredOperatorMethodNames = new HashSet<string>()

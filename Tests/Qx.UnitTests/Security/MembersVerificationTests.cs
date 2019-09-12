@@ -153,6 +153,54 @@ namespace Qx.UnitTests.Security
             AssertRefuted(refuted);
         }
 
+        [Fact]
+        public void Should_verify_construction_with_known_closed_constructors()
+        {
+            var constructor = typeof(Tuple<string, string>).GetConstructor(new[] { typeof(string), typeof(string) });
+            var expr = Expression.New(constructor, Expression.Constant("A"), Expression.Constant("B"));
+            var verify = Create(CreateDeclaredMembersVerifier(constructor, typeof(string)));
+
+            var verified = verify(expr);
+
+            AssertVerified(verified);
+        }
+
+        /// <remarks>
+        /// If only a new Class<string> is allowed then another closing of the generic like new Class<int> should not be allowed.
+        /// </remarks>
+        [Fact]
+        public void DeclaredMembersVerifier_should_verify_closed_generic_constructors()
+        {
+            var allowedConstructor = typeof(Tuple<string, string>).GetConstructor(new[] { typeof(string), typeof(string) });
+            var disallowedConstructor = typeof(Tuple<int, int>).GetConstructor(new[] { typeof(int), typeof(int) });
+            var allowedExpr = Expression.New(allowedConstructor, Expression.Constant("A"), Expression.Constant("B"));
+            var disallowedExpr = Expression.New(disallowedConstructor, Expression.Constant(4), Expression.Constant(2));
+            var verify = Create(CreateDeclaredMembersVerifier(allowedConstructor, typeof(string), typeof(int)));
+
+            var verified = verify(allowedExpr);
+            var refuted = verify(disallowedExpr);
+
+            AssertVerified(verified);
+            AssertRefuted(refuted);
+        }
+
+
+        /// <remarks>
+        /// If only a new Class<T> is allowed then any closing is allowed.
+        /// </remarks>
+        [Fact]
+        public void DeclaredMembersVerifier_should_verify_open_generic_constructors_to_be_closed_with_any_types()
+        {
+            var closedConstructor = typeof(Tuple<string, string>).GetConstructor(new[] { typeof(string), typeof(string) });
+            var openConstructor = typeof(Tuple<,>).GetConstructors()[0];
+            var expr = Expression.New(closedConstructor, Expression.Constant("A"), Expression.Constant("B"));
+            var verify = Create(CreateDeclaredMembersVerifier(openConstructor, typeof(string)));
+
+            var verified = verify(expr);
+
+            AssertVerified(verified);
+        }
+
         /// <remarks>
         /// Only one of the <see cref="MemberVerifier"/>s need to return true.
         /// </summary>
