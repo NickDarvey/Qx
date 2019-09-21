@@ -245,6 +245,15 @@ namespace Qx.Security
                 typeof(ValueTuple<,,,,,>),
                 typeof(ValueTuple<,,,,,,>),
                 typeof(ValueTuple<,,,,,,,>),
+                typeof(Tuple),
+                typeof(Tuple<>),
+                typeof(Tuple<,>),
+                typeof(Tuple<,,>),
+                typeof(Tuple<,,,>),
+                typeof(Tuple<,,,,>),
+                typeof(Tuple<,,,,,>),
+                typeof(Tuple<,,,,,,>),
+                typeof(Tuple<,,,,,,,>),
             };
 
         public static readonly IEnumerable<MemberInfo> TupleMembers =
