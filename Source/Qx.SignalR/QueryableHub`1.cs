@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using Serialize.Linq.Nodes;
+using Remote.Linq;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,10 +16,10 @@ namespace Qx.SignalR
         public QueryableHub(IQxService service) => _service = service;
 
         [HubMethodName("qx`n")]
-        public async Task<IAsyncEnumerable<object>> GetEnumerable(ExpressionNode expression, CancellationToken cancellationToken)
+        public async Task<IAsyncEnumerable<object>> GetEnumerable(Remote.Linq.Expressions.MethodCallExpression expression, CancellationToken cancellationToken)
         {
             var query = await CompileEnumerableQuery(
-                expression: expression.ToExpression(),
+                expression: expression.ToLinqExpression(),
                 verify: _service.GetVerifier(),
                 authorize: _service.GetAuthorizer(Context),
                 bindings: _hubMethods.WithInstance(this));
@@ -27,10 +27,10 @@ namespace Qx.SignalR
         }
 
         [HubMethodName("qx`1")]
-        public async Task<object> GetResult(ExpressionNode expression)
+        public async Task<object> GetResult(Remote.Linq.Expressions.MethodCallExpression expression)
         {
             var query = await CompileExecutableQuery(
-                expression: expression.ToExpression(),
+                expression: expression.ToLinqExpression(),
                 verify: _service.GetVerifier(),
                 authorize: _service.GetAuthorizer(Context),
                 bindings: _hubMethods.WithInstance(this));

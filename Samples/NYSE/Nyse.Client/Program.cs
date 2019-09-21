@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Nyse.Schema;
 using Qx.Client;
 using Qx.Client.SignalR;
+using Remote.Linq;
 using System;
 using System.Linq;
 using System.Net.Http;
@@ -24,7 +25,7 @@ namespace Nyse.Client
         {
             var connection = new HubConnectionBuilder()
                 .WithUrl(endpoint)
-                .AddNewtonsoftJsonProtocol(s => s.PayloadSerializerSettings.TypeNameHandling = Newtonsoft.Json.TypeNameHandling.Objects)
+                .AddNewtonsoftJsonProtocol(s => s.PayloadSerializerSettings.ConfigureRemoteLinq())
                 .Build();
 
             while (connection.State == HubConnectionState.Disconnected) // Wait for server to start
@@ -74,11 +75,15 @@ namespace Nyse.Client
                          where so.Symbol == sp.Symbol
                          from ls in client.GetEnumerable<Listing>("Listings")
                          where ls.Symbol == sp.Symbol
+                         //select new { ls.Symbol, ls.Name, MarketCap = sp.Price * so.Count };
                          select ValueTuple.Create(ls.Symbol, ls.Name, sp.Price * so.Count);
+
+            //var query3 = query2.AsAsyncEnumerable().Select(t => new { Symbol = t.Item1, Name = t.Item2, MarketCap = t.Item3 });
 
             await foreach (var element in query2)
             {
                 Console.WriteLine($"{element.Item2} ({element.Item1}): {element.Item3.ToString("C")}");
+                //Console.WriteLine($"{element.Name} ({element.Symbol}): {element.MarketCap.ToString("C")}");
             }
         }
     }

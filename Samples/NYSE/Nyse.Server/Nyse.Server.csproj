@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson" Version="3.0.0-preview8.19405.7" />
+    <PackageReference Include="Remote.Linq.Newtonsoft.Json" Version="6.1.0-beta-002" />
   </ItemGroup>
 
   <ItemGroup>
