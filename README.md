@@ -1,5 +1,7 @@
 # Qx
 
+**Archived**: I wanted to build something like [Reaqtor](https://github.com/reaqtive/reaqtor). Go use that instead :)
+
 Qx is library which extends ASP.NET's SignalR so that clients can query streams using LINQ.
 
 ## About Qx
